@@ -2,36 +2,35 @@ package main
 
 import (
 	"log"
-	"net/http"
+	"net"
 
 	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 )
 
 func main() {
-	err := http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("new connection")
-		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		if err != nil {
-			log.Panic(err)
-		}
-		go func() {
-			defer conn.Close()
-			for {
-				msg, op, err := wsutil.ReadClientData(conn)
-				if err != nil {
-					//log.Panic(err)
-				}
-				err = wsutil.WriteServerMessage(conn, op, msg)
-				if err != nil {
-					//log.Panic(err)
-				}
-			}
-		}()
-	}))
-
+	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
-	log.Println("websocket server listening on port 8080")
+	u := ws.Upgrader{
+		OnHeader: func(key, value []byte) (err error) {
+			log.Printf("non-websocket header: %q=%q", key, value)
+			return
+		},
+		OnRequest: func(uri []byte) error {
+			log.Println("on request: ", string(uri))
+			return nil
+		},
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			// handle error
+		}
+
+		_, err = u.Upgrade(conn)
+		if err != nil {
+			// handle error
+		}
+	}
 }

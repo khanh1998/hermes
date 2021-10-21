@@ -21,7 +21,7 @@ export default defineComponent({
     };
   },
   created() {
-    const ws = new WebSocket("ws://localhost:8080")
+    const ws = new WebSocket("ws://localhost:8080?token=123456789")
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev})
     }
