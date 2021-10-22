@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from 'src/authentication/jwt.guard';
 import { User } from './user.entity';
 import { UserService } from './user.service';
 
@@ -12,8 +20,14 @@ export class UserController {
     return await this.userService.create(user);
   }
 
-  @Get()
+  // @Get()
   async findAll(): Promise<Array<User>> {
     return await this.userService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async findOne(@Request() req): Promise<User> {
+    return req.user;
   }
 }

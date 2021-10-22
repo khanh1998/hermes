@@ -1,20 +1,17 @@
-import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { AuthenticationDTO } from './authentication.req.dto';
+import { Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from './jwt.guard';
 import { AuthenticationService } from './authentication.service';
+import { LocalAuthGuard } from './local-auth.guard';
 
 @Controller({
   path: '/authentication',
 })
 export class AuthenticationController {
-  constructor(private readonly auth: AuthenticationService) {}
+  constructor(private readonly authService: AuthenticationService) {}
 
+  @UseGuards(LocalAuthGuard)
   @Post()
-  async getHello(@Body() auth: AuthenticationDTO, @Res() res: Response) {
-    const token = await this.auth.login(auth);
-    if (token) {
-      return res.send(token);
-    }
-    return res.status(HttpStatus.UNAUTHORIZED).send('unauthorized');
+  async login(@Request() req) {
+    return this.authService.login(req.user);
   }
 }
