@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './local.strategy';
 import { JwtStrategy } from './jwt.strategy';
+import { TokenModule } from 'src/token/token.module';
 
 @Module({
   controllers: [AuthenticationController],
@@ -13,6 +14,7 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     UsersModule,
     PassportModule,
+    TokenModule,
     JwtModule.register({
       secret: 'jwtsecretkey',
       signOptions: {
