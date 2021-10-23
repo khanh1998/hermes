@@ -19,6 +19,7 @@ export class AuthenticationController {
   @UseGuards(WsGuard)
   @Post('/ws')
   async loginWebsocket() {
+    console.log('login ws ok');
     return true;
   }
 }

@@ -21,18 +21,25 @@ export default defineComponent({
     };
   },
   created() {
-    const ws = new WebSocket("ws://localhost:8080?token=123456789")
-    ws.onmessage = (ev: MessageEvent<any>) => {
-      console.log({ message: ev})
-    }
-    const message = {
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImtoYW5oIiwiaWQiOjEsInR5cGUiOiIxIiwiaWF0IjoxNjM0OTc0NzY2LCJleHAiOjE2MzQ5NzUwNjZ9.P-oXlKfgd28v6aQh8K25B7Lvb_5vNegjJkKhcsPjNPI"
+    const ws = new WebSocket(`ws://localhost:8080?token=${token}`)
+    let message = {
       name: "khanh",
-      message: "i love you",
+      message: "ping ping ping ping",
       time: Date.now(),
     }
     ws.onopen = (ev: Event) => {
       console.log({ open: ev })
       ws.send(JSON.stringify(message))
+    }
+    ws.onmessage = (ev: MessageEvent<any>) => {
+      console.log({ message: ev})
+      message = {
+        name: "khanh",
+        message: "ping ping ping ping",
+        time: Date.now(),
+      }
+      setTimeout(() => ws.send(JSON.stringify(message)), 1000)
     }
   },
 });
