@@ -15,11 +15,14 @@
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { createNamespacedHelpers } from 'vuex';
 
 interface LoginData {
 	username: string
 	password: string
 }
+
+const { mapActions } = createNamespacedHelpers('user')
 
 export default defineComponent({
 	data() {
@@ -31,9 +34,18 @@ export default defineComponent({
 		}
 	},
 	methods: {
+		...mapActions([
+			'loginMainApp',
+			'getCurrentUser',
+			'getWebsocketToken',
+		]),
 		async doLogin() {
 			//
-			console.log("login", this.loginData);
+			console.log('login', this.loginData);
+			await this.loginMainApp(this.loginData);
+			await this.getCurrentUser();
+			await this.getWebsocketToken();
+			await this.$router.push('/home');
 		}
 	}
 })
