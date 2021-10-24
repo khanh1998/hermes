@@ -37,14 +37,12 @@ export default defineComponent({
 		...mapActions([
 			'loginMainApp',
 			'getCurrentUser',
-			'getWebsocketToken',
 		]),
 		async doLogin() {
 			//
 			console.log('login', this.loginData);
 			await this.loginMainApp(this.loginData);
 			await this.getCurrentUser();
-			await this.getWebsocketToken();
 			await this.$router.push('/home');
 		}
 	}

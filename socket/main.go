@@ -12,10 +12,10 @@ import (
 )
 
 func main() {
-	authClient := httpclient.NewAuthenticationClient("http://localhost:3000/authentication/ws")
+	authClient := httpclient.NewAuthenticationClient("http://localhost:4000/authentication/ws")
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	u := ws.Upgrader{
 		OnRequest: func(uri []byte) error {
@@ -39,12 +39,12 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			// handle error
+			log.Println(err)
 		}
 
 		_, err = u.Upgrade(conn)
 		if err != nil {
-			// handle error
+			log.Println(err)
 		}
 
 		go func() {
@@ -59,17 +59,19 @@ func main() {
 				_, err = io.ReadFull(conn, payload)
 				log.Println(payload)
 				if err != nil {
-
+					log.Println(err)
 				}
 				if header.Masked {
 					ws.Cipher(payload, header.Mask, 0)
 				}
 				header.Masked = false
 				if err := ws.WriteHeader(conn, header); err != nil {
-
+					log.Println(err)
+					break
 				}
 				if _, err := conn.Write(payload); err != nil {
-
+					log.Println(err)
+					break
 				}
 				if header.OpCode == ws.OpClose {
 					return
