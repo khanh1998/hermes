@@ -17,7 +17,7 @@ export class WsGuard implements CanActivate {
     let isTokenValid;
     try {
       isTokenValid = await this.jwtService.verifyAsync(token, {
-        secret: 'jwtsecretkey',
+        secret: process.env.JWT_SECRET,
       });
     } catch (error) {
       return false;

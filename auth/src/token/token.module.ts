@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TokenController } from './token.controller';
@@ -8,10 +9,11 @@ import { TokenService } from './token.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Token]),
+    ConfigModule.forRoot(),
     JwtModule.register({
-      secret: 'jwtsecretkey',
+      secret: process.env.JWT_SECRET,
       signOptions: {
-        expiresIn: '1 hour',
+        expiresIn: process.env.MAIN_TOKEN_EXPIRE,
       },
     }),
   ],

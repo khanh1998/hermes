@@ -19,7 +19,9 @@ export class TokenService {
       id: user.id,
       type: TokenType.WEBSOCKET.toString(),
     };
-    const tokenStr = this.jwtService.sign(payload, { expiresIn: '5m' });
+    const tokenStr = this.jwtService.sign(payload, {
+      expiresIn: process.env.WS_TOKEN_EXPIRE,
+    });
     const token = {
       id: null,
       token: tokenStr,
