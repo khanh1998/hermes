@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import PrismaModule from 'src/prisma/prisma.module';
+import { JwtStrategy } from 'src/auth/jwt.strategy';
+import PrismaModule from 'src/myprisma/prisma.module';
 import { ClanController } from './clan.controller';
 import { ClanService } from './clan.service';
 
 @Module({
   controllers: [ClanController],
-  providers: [ClanService],
+  providers: [ClanService, JwtStrategy],
   imports: [PrismaModule],
 })
 export class ClanModule {}

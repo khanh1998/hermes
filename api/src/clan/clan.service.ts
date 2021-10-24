@@ -1,6 +1,6 @@
 import { Clan, Prisma } from '.prisma/client';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/myprisma/prisma.service';
 
 @Injectable()
 export class ClanService {
