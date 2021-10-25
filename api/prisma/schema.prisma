@@ -14,17 +14,16 @@ model Clan {
   id Int @default(autoincrement()) @id
   domain String
   name String
-  chief User? @relation("Chief")
+  chief User? @relation(fields: [chiefId], references: [id], "Chief")
   chiefId Int
-  members User[] @relation("Members")
+  members User[]
 }
 
 model User {
   id Int @default(autoincrement()) @id
-  username String
+  username String @unique
+  password String
   fullname String
-  clan Clan? @relation(references: [id], fields: [clanId], name: "Members")
-  clanId Int
-  foundedClan Clan? @relation(references: [id], fields: [foundedClanId], name: "Chief")
-  foundedClanId Int 
+  clans Clan[]
+  foundedClans Clan[] @relation("Chief")
 }

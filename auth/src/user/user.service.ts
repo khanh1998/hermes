@@ -1,32 +1,21 @@
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { AxiosResponse } from 'axios';
+import { ObjectEncodingOptions } from 'fs';
+import { map, Observable } from 'rxjs';
 import { User } from './user.entity';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-  ) {}
+  constructor(private httpService: HttpService) {}
 
-  async create(user: User): Promise<User> {
-    return await this.userRepository.save(user);
+  findOne(id: string): Observable<any> {
+    const res = this.httpService.get(`/user/${id}`);
+    return res.pipe(map((res: AxiosResponse) => res.data));
   }
 
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find();
-  }
-
-  async findOne(id: string): Promise<User> {
-    return await this.userRepository.findOne(id);
-  }
-
-  async findOneByUsername(username: string): Promise<User> {
-    return await this.userRepository.findOne({ where: { username } });
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.userRepository.delete(id);
+  findOneByUsername(username: string): Observable<User> {
+    const res = this.httpService.get(`/user/${username}`);
+    return res.pipe(map((res: AxiosResponse) => res.data as User));
   }
 }

@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Request,
   UseGuards,
@@ -16,14 +17,15 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private userService: UserService) {}
   @Post()
-  // @UseGuards(JwtAuthGuard)
-  async create(@Body() user: User): Promise<User> {
-    return await this.userService.create(user);
+  async create(
+    @Body() user: { username: string; fullname: string; password: string },
+  ): Promise<User> {
+    const { fullname, password, username } = user;
+    return await this.userService.create({ fullname, password, username });
   }
 
-  @Get()
-  // @UseGuards(JwtAuthGuard)
-  async findOne(@Request() req): Promise<User> {
-    return req.user;
+  @Get('/:username')
+  async findOne(@Param('username') username: string): Promise<User> {
+    return this.userService.findOne({ username });
   }
 }

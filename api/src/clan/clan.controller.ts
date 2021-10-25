@@ -30,6 +30,6 @@ export class ClanController {
     @Body() clan: { domain: string; name: string },
   ): Promise<Clan> {
     const { domain, name } = clan;
-    return this.clanService.create({ domain, name, chiefId: req.user.id });
+    return this.clanService.create({ domain, name, chief: req.user });
   }
 }

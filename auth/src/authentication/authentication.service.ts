@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { map, Observable } from 'rxjs';
 import { TokenType } from 'src/token/token.entity';
 import { TokenService } from 'src/token/token.service';
 import { User } from 'src/user/user.entity';
@@ -13,12 +14,16 @@ export class AuthenticationService {
     private tokenService: TokenService,
   ) {}
 
-  async validateUser(username: string, password: string): Promise<User> {
-    const user = await this.userService.findOneByUsername(username);
-    if (user.password === password) {
-      return user;
-    }
-    return null;
+  validateUser(username: string, password: string): Observable<User> {
+    const obser = this.userService.findOneByUsername(username);
+    return obser.pipe(
+      map((user: User) => {
+        if (user.password === password) {
+          return user;
+        }
+        return null;
+      }),
+    );
   }
 
   async generateToken(user: User) {
