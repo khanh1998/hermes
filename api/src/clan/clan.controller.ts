@@ -1,10 +1,11 @@
-import { Clan, User } from '.prisma/client';
+import { Clan, Prisma, User } from '.prisma/client';
 import {
   Body,
   Controller,
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -18,7 +19,6 @@ export class ClanController {
   constructor(private readonly clanService: ClanService) {}
 
   @Get('/:id')
-  @UseGuards(JwtAuthGuard)
   getClanById(@Param('id') id: number): Promise<Clan> {
     return this.clanService.findOne({ id: Number(id) });
   }
@@ -30,6 +30,29 @@ export class ClanController {
     @Body() clan: { domain: string; name: string },
   ): Promise<Clan> {
     const { domain, name } = clan;
-    return this.clanService.create({ domain, name, chief: req.user });
+    const requesterId = req.user.id;
+    return this.clanService.create({
+      domain,
+      name,
+      chief: { connect: { id: requesterId } },
+    });
+  }
+
+  @Get()
+  getClans(@Query('name') name: string): Promise<Clan[]> {
+    return this.clanService.findAll({ where: { name: { contains: name } } });
+  }
+
+  @Post('/:clanId/user/:username')
+  addUser(
+    @Param('clanId') clanId: number,
+    @Param('username') username: string,
+  ) {
+    return this.clanService.update({
+      where: { id: Number(clanId) },
+      data: {
+        members: { connect: { username } },
+      },
+    });
   }
 }

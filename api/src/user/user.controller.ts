@@ -9,13 +9,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
+import { ClanService } from 'src/clan/clan.service';
 import { UserService } from './user.service';
 
 @Controller({
   path: '/user',
 })
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private clanService: ClanService,
+  ) {}
   @Post()
   async create(
     @Body() user: { username: string; fullname: string; password: string },
@@ -27,5 +31,12 @@ export class UserController {
   @Get('/:username')
   async findOne(@Param('username') username: string): Promise<User> {
     return this.userService.findOne({ username });
+  }
+
+  @Get('/:username/clan')
+  async findAllClanOfUser(@Param('username') username: string) {
+    return this.clanService.findAll({
+      where: { members: { some: { username } } },
+    });
   }
 }

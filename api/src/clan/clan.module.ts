@@ -8,5 +8,6 @@ import { ClanService } from './clan.service';
   controllers: [ClanController],
   providers: [ClanService, JwtStrategy],
   imports: [PrismaModule],
+  exports: [ClanService],
 })
 export class ClanModule {}

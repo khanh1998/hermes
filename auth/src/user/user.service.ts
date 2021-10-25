@@ -10,12 +10,12 @@ export class UserService {
   constructor(private httpService: HttpService) {}
 
   findOne(id: string): Observable<any> {
-    const res = this.httpService.get(`/user/${id}`);
+    const res = this.httpService.get(`http://localhost:5000/user/${id}`);
     return res.pipe(map((res: AxiosResponse) => res.data));
   }
 
   findOneByUsername(username: string): Observable<User> {
-    const res = this.httpService.get(`/user/${username}`);
+    const res = this.httpService.get(`http://localhost:5000/user/${username}`);
     return res.pipe(map((res: AxiosResponse) => res.data as User));
   }
 }
