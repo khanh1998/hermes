@@ -71,7 +71,7 @@ const actions = {
 	async loginMainApp({ state, commit } : { state: UserState, commit: Commit}, loginData: any) {
 		try {
 			commit(mutationTypes.LOGIN_MAIN_REQUEST)
-			const res = await window.axios.post('/authentication/main', loginData)
+			const res = await window.axiosAuth.post('/authentication/main', loginData)
 			if (res.status === 201) {
 				localStorage.setItem('main_token', (res.data as any).main_token)
 				commit(mutationTypes.LOGIN_MAIN_SUCCESS)
@@ -94,7 +94,7 @@ const actions = {
 	async getWebsocketToken({ state, commit } : { state: UserState, commit: Commit}) {
 		try {
 			commit(mutationTypes.GET_WS_TOKEN_REQUEST)
-			const res = await window.axios.post('/token/ws')
+			const res = await window.axiosAuth.post('/token/ws')
 			if (res.status === 201) {
 				localStorage.setItem('ws_token', (res.data as any).ws_token)
 				commit(mutationTypes.GET_WS_TOKEN_SUCCESS)

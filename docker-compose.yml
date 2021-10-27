@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+  postgres:
+    image: postgres:14.0-alpine
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_PASSWORD=handsome
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hermes_dev
+  redis:
+    image: redis:6.2.6
+    networks:
+      - hermes_dev
+
+volumes:
+  postgres_data:
+networks:
+  hermes_dev:

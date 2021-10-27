@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"hermes/socket/config"
 	"hermes/socket/httpclient"
+	"hermes/socket/redisclient"
 	"io"
 	"log"
 	"net"
@@ -11,9 +15,24 @@ import (
 	"github.com/gobwas/ws"
 )
 
+type Message struct {
+	senderId int
+	clanId   int // channel id
+	message  string
+	time     int
+}
+
 func main() {
-	authClient := httpclient.NewAuthenticationClient("http://localhost:4000/authentication/ws")
-	ln, err := net.Listen("tcp", ":8080")
+	env, err := config.GetEnv()
+	if err != nil {
+		log.Println(err)
+	}
+	redis := redisclient.NewRedisClient(env)
+	log.Println(redis)
+	authClient := httpclient.NewAuthenticationClient(
+		fmt.Sprintf("%v%v", env.AUTH_SERVICE_HOST, env.WS_AUTH_PATH),
+	)
+	ln, err := net.Listen("tcp", env.APP_PORT)
 	if err != nil {
 		log.Println(err)
 	}
@@ -57,10 +76,14 @@ func main() {
 				}
 				payload := make([]byte, header.Length)
 				_, err = io.ReadFull(conn, payload)
-				log.Println(payload)
 				if err != nil {
 					log.Println(err)
 				}
+				var jsonPayload Message
+				if err := json.Unmarshal(payload, &jsonPayload); err != nil {
+					log.Println(err)
+				}
+				log.Println(jsonPayload)
 				if header.Masked {
 					ws.Cipher(payload, header.Mask, 0)
 				}

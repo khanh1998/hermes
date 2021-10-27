@@ -1,7 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosResponse } from 'axios';
-import { ObjectEncodingOptions } from 'fs';
 import { map, Observable } from 'rxjs';
 import { User } from './user.entity';
 
