@@ -18,8 +18,9 @@ export class AuthenticationController {
 
   @UseGuards(WsGuard)
   @Post('/ws')
-  async loginWebsocket() {
+  async loginWebsocket(@Request() req: Request) {
     console.log('login ws ok');
-    return true;
+    console.log(req.headers['user']);
+    return req.headers['user'];
   }
 }

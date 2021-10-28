@@ -31,3 +31,10 @@ func (r *RedisClient) Publish(channel string, message interface{}) error {
 	}
 	return nil
 }
+
+func (r *RedisClient) Subcribe(channel string) *redis.PubSub {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	sub := r.client.Subscribe(ctx, channel)
+	return sub
+}
