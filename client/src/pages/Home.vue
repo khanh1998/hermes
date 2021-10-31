@@ -1,11 +1,18 @@
 <template>
   <div class="grid grid-cols-12 gap-x-2 p-2" v-show="!isLoading">
-    <channel-list
-      class="col-span-3"
-      :channels="clanChannels"
-      :current-channel-id="selectedChannelId"
-      @change-channel="handleChangeChannel"
-    />
+    <div class="col-span-3">
+      <clan-list
+        :clans="userClans"
+        :selected-clan-id="selectedClanId"
+        @change-clan="handleChangeClan"
+        class="mb-2"
+      />
+      <channel-list
+        :channels="clanChannels"
+        :current-channel-id="selectedChannelId"
+        @change-channel="handleChangeChannel"
+      />
+    </div>
     <chat-box
       class="col-span-9"
       :channel-id="selectedChannelId"
@@ -20,13 +27,15 @@ import ChannelList from "../components/ChannelList.vue";
 import ChatBox from "../components/ChatBox.vue";
 import { Channel, ClanData, ClanState } from "../store/clan";
 import { UserData, UserState, ClanShort } from "../store/user";
-import {HOME_PAGE} from '../constants/constant';
+import { HOME_PAGE } from "../constants/constant";
+import ClanList from "../components/ClanList.vue";
 export default defineComponent({
-  components: { ChatBox, ChannelList },
+  components: { ChatBox, ChannelList, ClanList },
   name: "Home",
   data() {
     return {
       channelId: HOME_PAGE.DEFAULT_CHANNEL_ID,
+      clanId: HOME_PAGE.DEFAULT_CLAN_ID,
     };
   },
   computed: {
@@ -40,6 +49,9 @@ export default defineComponent({
       return this.userData?.data?.clans || [];
     },
     selectedClanId(): number | null {
+      if (this.clanId !== HOME_PAGE.DEFAULT_CLAN_ID) {
+        return this.clanId;
+      }
       if (this.userClans?.length === 0) {
         return null;
       } else {
@@ -68,6 +80,9 @@ export default defineComponent({
     ...mapActions("clan", ["getClanById"]),
     handleChangeChannel(channelId: number) {
       this.channelId = channelId;
+    },
+    handleChangeClan(clanId: number) {
+      this.clanId = clanId;
     },
   },
   async created() {

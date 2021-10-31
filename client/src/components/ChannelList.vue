@@ -1,5 +1,6 @@
 <template>
   <div class="flex flex-col border border-green-400 rounded p-2">
+    <span>Channel</span>
     <div
       v-for="chan in extendedChannels"
       :key="chan.id"

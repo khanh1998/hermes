@@ -93,10 +93,10 @@ export default defineComponent({
       return this.$store.state.user.data;
     },
     convertedMessages(): Array<ConvertedMessage> {
-      const filterByChanel = this.messages.filter(
-        (mess: Message) => mess.channelId === this.channelId
-      );
-      return filterByChanel.map((mess: Message) => {
+      const filterByChanelAndClan = this.messages.filter((mess: Message) => {
+        return mess.channelId === this.channelId && mess.clanId === this.clanId;
+      });
+      return filterByChanelAndClan.map((mess: Message) => {
         const date = new Date(mess.time);
         const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
         const side: Side =
