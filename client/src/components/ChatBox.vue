@@ -78,6 +78,10 @@ export default defineComponent({
       message: "",
     };
   },
+  props: {
+    clanId: Number,
+    channelId: Number,
+  },
   computed: {
     ...mapState("user", {
       userData: (state: any) => state.data,
@@ -108,7 +112,8 @@ export default defineComponent({
     makeMessage(message: string): any {
       return {
         senderId: this.userData.id,
-        clanId: 1,
+        clanId: this.clanId,
+        channelId: this.channelId,
         message: message,
         time: Date.now(),
       };
@@ -120,8 +125,7 @@ export default defineComponent({
     }
   },
   async created() {
-    await this.getCurrentUser();
-    await this.getWebsocketToken();
+    // await this.getWebsocketToken();
     const token = localStorage.getItem("ws_token");
     const host = import.meta.env.VITE_SOCKET_HOST;
     const ws = new WebSocket(`${host}?token=${token}`);

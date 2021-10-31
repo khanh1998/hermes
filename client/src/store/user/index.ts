@@ -1,9 +1,17 @@
 import { ActionContext, Commit } from "vuex";
 
+export interface ClanShort {
+	id: number,
+	domain: string,
+	name: string,
+	chiefId: string,
+}
 export interface UserData {
 	id: number,
 	username: string,
 	fullname: string,
+	clans: ClanShort[],
+	foundedClans: ClanShort[]
 }
 export interface UserState {
 	loading: boolean,

@@ -68,58 +68,62 @@ func main() {
 		_, err = u.Upgrade(conn)
 		if err != nil {
 			log.Println(err)
+		} else {
+			go func() {
+				defer conn.Close()
+
+				var (
+					state  = ws.StateServerSide
+					reader = wsutil.NewReader(conn, state)
+				)
+				for {
+					header, err := reader.NextFrame()
+					if err != nil {
+						// handle error
+						break
+					}
+
+					buff := make([]byte, header.Length)
+					reader.Read(buff)
+					if err := redis.Publish("1", buff); err != nil {
+						log.Println("publish", err)
+						break
+					}
+				}
+			}()
+			go func() {
+				defer conn.Close()
+
+				var (
+					state     = ws.StateServerSide
+					writer    = wsutil.NewWriter(conn, state, ws.OpText)
+					myAuthRes = authRes
+				)
+				for {
+					// Reset writer to write frame with right operation code.
+					// writer.Reset(conn, state, header.OpCode)
+					subcribe := redis.Subcribe("1")
+					var ctx = context.Background()
+					mess, err := subcribe.ReceiveMessage(ctx)
+					if err != nil {
+						break
+						log.Println(err)
+					}
+					log.Println("receive message", mess)
+					var receivedMessage Message
+					json.Unmarshal([]byte(mess.Payload), &receivedMessage)
+					if myAuthRes.ID != receivedMessage.SenderId {
+						writer.Write([]byte(mess.Payload))
+					}
+					// if _, err = io.Copy(writer, reader); err != nil {
+					// handle error
+					// }
+					if err = writer.Flush(); err != nil {
+						// handle error
+						break
+					}
+				}
+			}()
 		}
-
-		go func() {
-			defer conn.Close()
-
-			var (
-				state  = ws.StateServerSide
-				reader = wsutil.NewReader(conn, state)
-			)
-			for {
-				header, err := reader.NextFrame()
-				if err != nil {
-					// handle error
-				}
-
-				buff := make([]byte, header.Length)
-				reader.Read(buff)
-				if err := redis.Publish("1", buff); err != nil {
-					log.Println("publish", err)
-				}
-			}
-		}()
-		go func() {
-			defer conn.Close()
-
-			var (
-				state     = ws.StateServerSide
-				writer    = wsutil.NewWriter(conn, state, ws.OpText)
-				myAuthRes = authRes
-			)
-			for {
-				// Reset writer to write frame with right operation code.
-				// writer.Reset(conn, state, header.OpCode)
-				subcribe := redis.Subcribe("1")
-				var ctx = context.Background()
-				mess, err := subcribe.ReceiveMessage(ctx)
-				if err != nil {
-					log.Println(err)
-				}
-				log.Println("receive message", mess)
-				var receivedMessage Message
-				json.Unmarshal([]byte(mess.Payload), &receivedMessage)
-				if myAuthRes.ID != receivedMessage.SenderId {
-					writer.Write([]byte(mess.Payload))
-				}
-				// if _, err = io.Copy(writer, reader); err != nil {
-				// handle error
-				// }
-				if err = writer.Flush(); err != nil {
-					// handle error
-				}
-			}
-		}()
 	}
 }
