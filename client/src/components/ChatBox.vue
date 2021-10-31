@@ -8,9 +8,11 @@
       >
         <message-item
           :message="mess.message"
-          :timeStr="mess.timeStr"
-          :username="`K`"
+          :time-str="mess.timeStr"
+          :username="mess.letter"
           :side="mess.side"
+          :show-avatar="mess.showAvatar"
+          :is-sender="mess.isSender"
         />
       </template>
     </div>
@@ -26,6 +28,7 @@
           p-1
         "
         placeholder="your message"
+        @keyup="pressEnterToSend"
       />
       <button
         @click="sendMessage"
@@ -60,6 +63,9 @@ interface ConvertedMessage {
   message: string;
   time: number;
   timeStr: string;
+  showAvatar: boolean;
+  letter: string;
+  isSender: boolean;
 }
 
 export default defineComponent({
@@ -82,7 +88,10 @@ export default defineComponent({
         const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
         const side: Side =
           mess.senderId === this.userData.id ? Side.RIGHT : Side.LEFT;
-        return { ...mess, timeStr, side };
+        const showAvatar = this.userData.id !== mess.senderId;
+        const letter = mess.senderId.toString().substr(0,1);
+        const isSender = !showAvatar;
+        return { ...mess, timeStr, side, showAvatar, letter, isSender };
       });
     },
   },
@@ -104,6 +113,11 @@ export default defineComponent({
         time: Date.now(),
       };
     },
+    pressEnterToSend(ev: KeyboardEvent) {
+      if (ev.key === "Enter") {
+        this.sendMessage();
+      }
+    }
   },
   async created() {
     await this.getCurrentUser();
