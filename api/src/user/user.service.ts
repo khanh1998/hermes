@@ -30,6 +30,10 @@ export class UserService {
   async findOne(where: Prisma.UserWhereUniqueInput): Promise<User | null> {
     return await this.prisma.user.findUnique({
       where,
+      include: {
+        clans: {},
+        foundedClans: {},
+      },
     });
   }
 

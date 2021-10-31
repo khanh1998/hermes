@@ -11,6 +11,11 @@ export class ClanService {
   ): Promise<Clan | null> {
     return await this.prisma.clan.findUnique({
       where: clanWhereUniqueInput,
+      include: {
+        channels: {},
+        chief: {},
+        members: {},
+      },
     });
   }
 
@@ -33,6 +38,21 @@ export class ClanService {
 
   async create(clan: Prisma.ClanCreateInput): Promise<Clan | null> {
     return await this.prisma.clan.create({ data: clan });
+  }
+
+  async createClanAndDefaultChannel(
+    clan: Prisma.ClanCreateInput,
+  ): Promise<Clan | null> {
+    return await this.prisma.clan.create({
+      data: {
+        ...clan,
+        channels: {
+          create: {
+            name: 'Origin',
+          },
+        },
+      },
+    });
   }
 
   async update(params: {

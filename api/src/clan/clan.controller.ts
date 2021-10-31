@@ -31,7 +31,7 @@ export class ClanController {
   ): Promise<Clan> {
     const { domain, name } = clan;
     const requesterId = req.user.id;
-    return this.clanService.create({
+    return this.clanService.createClanAndDefaultChannel({
       domain,
       name,
       chief: { connect: { id: requesterId } },
@@ -39,8 +39,8 @@ export class ClanController {
   }
 
   @Get()
-  getClans(@Query('name') name: string): Promise<Clan[]> {
-    return this.clanService.findAll({ where: { name: { contains: name } } });
+  getClans(): Promise<Clan[]> {
+    return this.clanService.findAll({});
   }
 
   @Post('/:clanId/user/:username')
