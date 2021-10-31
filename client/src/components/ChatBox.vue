@@ -51,15 +51,18 @@ import { defineComponent } from "@vue/runtime-core";
 import { mapActions, mapState } from "vuex";
 import MessageItem from "../atoms/MessageItem.vue";
 import { Side } from "../constants/Chatbox";
+import { UserData, UserState } from "../store/user";
 interface Message {
   senderId: number;
   clanId: number;
+  channelId: number;
   message: string;
   time: number;
 }
 interface ConvertedMessage {
   senderId: number;
   clanId: number;
+  channelId: number;
   message: string;
   time: number;
   timeStr: string;
@@ -86,13 +89,16 @@ export default defineComponent({
     ...mapState("user", {
       userData: (state: any) => state.data,
     }),
+    userData(): UserData | null {
+      return this.$store.state.user.data;
+    },
     convertedMessages(): Array<ConvertedMessage> {
       return this.messages.map((mess: Message) => {
         const date = new Date(mess.time);
         const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
         const side: Side =
-          mess.senderId === this.userData.id ? Side.RIGHT : Side.LEFT;
-        const showAvatar = this.userData.id !== mess.senderId;
+          mess.senderId === this?.userData?.id ? Side.RIGHT : Side.LEFT;
+        const showAvatar = this?.userData?.id !== mess.senderId;
         const letter = mess.senderId.toString().substr(0,1);
         const isSender = !showAvatar;
         return { ...mess, timeStr, side, showAvatar, letter, isSender };
@@ -111,7 +117,7 @@ export default defineComponent({
     },
     makeMessage(message: string): any {
       return {
-        senderId: this.userData.id,
+        senderId: this?.userData?.id,
         clanId: this.clanId,
         channelId: this.channelId,
         message: message,
@@ -139,7 +145,13 @@ export default defineComponent({
     };
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev });
-      this.messages.push(JSON.parse(ev.data));
+      const incomming: Message = JSON.parse(ev.data);
+      if (incomming.senderId !== this?.userData?.id) {
+        this.messages.push(incomming);
+      } else {
+        // TODO: if this message is not in the array, push it in.
+        // in case user using two devices at a time.
+      }
     };
   },
 });

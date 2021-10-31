@@ -17,10 +17,11 @@ import (
 )
 
 type Message struct {
-	SenderId int    `json:"senderId"`
-	ClanId   int    `json:"clanId"`
-	Message  string `json:"message"`
-	Time     int    `json:"time"`
+	SenderId  int    `json:"senderId"`
+	ClanId    int    `json:"clanId"`
+	ChannelId int    `json:"channelId"`
+	Message   string `json:"message"`
+	Time      int    `json:"time"`
 }
 
 func main() {
@@ -100,6 +101,7 @@ func main() {
 					writer    = wsutil.NewWriter(conn, state, ws.OpText)
 					myAuthRes = authRes
 				)
+				log.Println(myAuthRes.Username)
 				for {
 					// Reset writer to write frame with right operation code.
 					// writer.Reset(conn, state, header.OpCode)
@@ -116,9 +118,9 @@ func main() {
 						log.Println(err)
 						break
 					}
-					if myAuthRes.ID != receivedMessage.SenderId {
-						writer.Write([]byte(mess.Payload))
-					}
+					// if myAuthRes.ID != receivedMessage.SenderId {
+					writer.Write([]byte(mess.Payload))
+					// }
 					// if _, err = io.Copy(writer, reader); err != nil {
 					// handle error
 					// }
