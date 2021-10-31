@@ -4,6 +4,7 @@
       class="col-span-3"
       :channels="clanChannels"
       :current-channel-id="selectedChannelId"
+      @change-channel="handleChangeChannel"
     />
     <chat-box
       class="col-span-9"
@@ -19,9 +20,15 @@ import ChannelList from "../components/ChannelList.vue";
 import ChatBox from "../components/ChatBox.vue";
 import { Channel, ClanData, ClanState } from "../store/clan";
 import { UserData, UserState, ClanShort } from "../store/user";
+import {HOME_PAGE} from '../constants/constant';
 export default defineComponent({
   components: { ChatBox, ChannelList },
   name: "Home",
+  data() {
+    return {
+      channelId: HOME_PAGE.DEFAULT_CHANNEL_ID,
+    };
+  },
   computed: {
     isLoading(): boolean {
       return !!this?.userData?.loading && !!this?.clanData?.loading;
@@ -40,6 +47,9 @@ export default defineComponent({
       }
     },
     selectedChannelId(): number | null {
+      if (this.channelId !== HOME_PAGE.DEFAULT_CHANNEL_ID) {
+        return this.channelId;
+      }
       if (this.clanChannels.length === 0) {
         return null;
       } else {
@@ -56,6 +66,9 @@ export default defineComponent({
   methods: {
     ...mapActions("user", ["getCurrentUser", "getWebsocketToken"]),
     ...mapActions("clan", ["getClanById"]),
+    handleChangeChannel(channelId: number) {
+      this.channelId = channelId;
+    },
   },
   async created() {
     await this.getCurrentUser();

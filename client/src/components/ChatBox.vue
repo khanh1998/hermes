@@ -93,13 +93,16 @@ export default defineComponent({
       return this.$store.state.user.data;
     },
     convertedMessages(): Array<ConvertedMessage> {
-      return this.messages.map((mess: Message) => {
+      const filterByChanel = this.messages.filter(
+        (mess: Message) => mess.channelId === this.channelId
+      );
+      return filterByChanel.map((mess: Message) => {
         const date = new Date(mess.time);
         const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
         const side: Side =
           mess.senderId === this?.userData?.id ? Side.RIGHT : Side.LEFT;
         const showAvatar = this?.userData?.id !== mess.senderId;
-        const letter = mess.senderId.toString().substr(0,1);
+        const letter = mess.senderId.toString().substr(0, 1);
         const isSender = !showAvatar;
         return { ...mess, timeStr, side, showAvatar, letter, isSender };
       });
@@ -128,7 +131,7 @@ export default defineComponent({
       if (ev.key === "Enter") {
         this.sendMessage();
       }
-    }
+    },
   },
   async created() {
     await this.getWebsocketToken();

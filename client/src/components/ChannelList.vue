@@ -3,8 +3,9 @@
     <div
       v-for="chan in extendedChannels"
       :key="chan.id"
-      class="my-1 p-1 rounded"
+      class="my-1 p-1 rounded hover:bg-green-700 cursor-pointer"
       :class="[chan.background]"
+      @click="changeChannel(chan.id)"
     >
       {{ chan.name }}
     </div>
@@ -26,6 +27,7 @@ export default defineComponent({
     },
     currentChannelId: Number,
   },
+  emits: ["change-channel"],
   computed: {
     extendedChannels() {
       return this.channels.map((item: any) => {
@@ -34,6 +36,11 @@ export default defineComponent({
           background: this.currentChannelId === item.id ? "bg-gray-400" : "",
         };
       });
+    },
+  },
+  methods: {
+    changeChannel(channelId: number) {
+      this.$emit("change-channel", channelId);
     },
   },
 });
