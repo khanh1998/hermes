@@ -125,8 +125,9 @@ export default defineComponent({
     }
   },
   async created() {
-    // await this.getWebsocketToken();
+    await this.getWebsocketToken();
     const token = localStorage.getItem("ws_token");
+    console.log({ token });
     const host = import.meta.env.VITE_SOCKET_HOST;
     const ws = new WebSocket(`${host}?token=${token}`);
     this.ws = ws;

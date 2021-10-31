@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-12 gap-x-2 p-2" v-if="!isLoading">
+  <div class="grid grid-cols-12 gap-x-2 p-2" v-show="!isLoading">
     <channel-list
       class="col-span-3"
       :channels="clanChannels"
@@ -32,16 +32,16 @@ export default defineComponent({
     userClans(): Array<ClanShort> {
       return this.userData?.data?.clans || [];
     },
-    selectedClanId(): number {
+    selectedClanId(): number | null {
       if (this.userClans?.length === 0) {
-        throw new Error("");
+        return null;
       } else {
         return this.userClans[0].id;
       }
     },
-    selectedChannelId(): number {
+    selectedChannelId(): number | null {
       if (this.clanChannels.length === 0) {
-        throw new Error("channel empty");
+        return null;
       } else {
         return this.clanChannels[0].id;
       }
@@ -60,7 +60,7 @@ export default defineComponent({
   async created() {
     await this.getCurrentUser();
     await this.getClanById(this.selectedClanId);
-    await this.getWebsocketToken();
+    // await this.getWebsocketToken();
   },
 });
 </script>

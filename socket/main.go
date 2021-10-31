@@ -79,7 +79,9 @@ func main() {
 				for {
 					header, err := reader.NextFrame()
 					if err != nil {
-						// handle error
+						break
+					}
+					if header.OpCode == ws.OpClose {
 						break
 					}
 
@@ -93,7 +95,6 @@ func main() {
 			}()
 			go func() {
 				defer conn.Close()
-
 				var (
 					state     = ws.StateServerSide
 					writer    = wsutil.NewWriter(conn, state, ws.OpText)
@@ -106,12 +107,15 @@ func main() {
 					var ctx = context.Background()
 					mess, err := subcribe.ReceiveMessage(ctx)
 					if err != nil {
-						break
 						log.Println(err)
+						break
 					}
 					log.Println("receive message", mess)
 					var receivedMessage Message
-					json.Unmarshal([]byte(mess.Payload), &receivedMessage)
+					if err := json.Unmarshal([]byte(mess.Payload), &receivedMessage); err != nil {
+						log.Println(err)
+						break
+					}
 					if myAuthRes.ID != receivedMessage.SenderId {
 						writer.Write([]byte(mess.Payload))
 					}

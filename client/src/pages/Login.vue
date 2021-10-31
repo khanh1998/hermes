@@ -42,7 +42,7 @@ export default defineComponent({
 			//
 			console.log('login', this.loginData);
 			await this.loginMainApp(this.loginData);
-			await this.getCurrentUser();
+			// await this.getCurrentUser();
 			await this.$router.push('/home');
 		}
 	}
