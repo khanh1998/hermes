@@ -1,6 +1,7 @@
 <template>
   <div class="grid grid-cols-12 gap-x-2 p-2" v-show="!isLoading">
     <div class="col-span-3">
+      <user-info :user="userData.data" class="mb-2"/>
       <clan-list
         :clans="userClans"
         :selected-clan-id="selectedClanId"
@@ -29,8 +30,9 @@ import { Channel, ClanData, ClanState } from "../store/clan";
 import { UserData, UserState, ClanShort } from "../store/user";
 import { HOME_PAGE } from "../constants/constant";
 import ClanList from "../components/ClanList.vue";
+import UserInfo from "../atoms/UserInfo.vue";
 export default defineComponent({
-  components: { ChatBox, ChannelList, ClanList },
+  components: { ChatBox, ChannelList, ClanList, UserInfo },
   name: "Home",
   data() {
     return {
