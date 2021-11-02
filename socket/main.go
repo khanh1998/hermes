@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"regexp"
+	"syscall"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -25,15 +26,30 @@ type Message struct {
 }
 
 func main() {
+	// Increase resources limitations
+	var rLimit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
+	}
+	rLimit.Cur = rLimit.Max
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
+	}
+	// Load environment variable
 	env, err := config.GetEnv()
 	if err != nil {
 		log.Println(err)
 	}
+
+	// Make redis client
 	redis := redisclient.NewRedisClient(env)
 	log.Println(redis)
+
+	// Make authentication client
 	authClient := httpclient.NewAuthenticationClient(
 		fmt.Sprintf("%v%v", env.AUTH_SERVICE_HOST, env.WS_AUTH_PATH),
 	)
+	// Main bussiness
 	ln, err := net.Listen("tcp", env.APP_PORT)
 	if err != nil {
 		log.Println(err)
