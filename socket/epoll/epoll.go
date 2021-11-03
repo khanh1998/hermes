@@ -53,6 +53,40 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, clan int) error {
 	return nil
 }
 
+func (s *SocketEpoll) RemoveSocket(conn net.Conn) error {
+	socketFd := GetFdFromConnection(conn)
+	epollFd := s.fd                        // file descriptor of the epoll
+	operationCode := syscall.EPOLL_CTL_DEL // operation of remove a fd out of epoll to unwatch them
+	fd := socketFd
+	if err := unix.EpollCtl(epollFd, operationCode, fd, nil); err != nil {
+		return err
+	}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	delete(s.fdToConnection, socketFd)
+	// TODO: delete file descriptor out of clan
+	return nil
+}
+
+func (s *SocketEpoll) Wait() ([]net.Conn, error) {
+	eventBucket := make([]unix.EpollEvent, 100)
+	epollFd := s.fd
+	timeout := 100
+	n, err := unix.EpollWait(epollFd, eventBucket, timeout)
+	if err != nil {
+		return nil, err
+	}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	var readyConns []net.Conn
+	for i := 0; i < n; i++ {
+		readyFd := eventBucket[i].Fd // file descriptor that ready to read or write
+		socketConn := s.fdToConnection[int(readyFd)]
+		readyConns = append(readyConns, socketConn)
+	}
+	return readyConns, nil
+}
+
 // kernel maintains a file descriptor for each connection,
 // this function get fd number of the input connection.
 func GetFdFromConnection(conn net.Conn) int {
