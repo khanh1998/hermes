@@ -87,6 +87,14 @@ func (s *SocketEpoll) Wait() ([]net.Conn, error) {
 	return readyConns, nil
 }
 
+func (s *SocketEpoll) GetFDByClan(clanId int) []int {
+	return s.clanToFds[clanId]
+}
+
+func (s *SocketEpoll) GetConnectionByFD(fd int) net.Conn {
+	return s.fdToConnection[fd]
+}
+
 // kernel maintains a file descriptor for each connection,
 // this function get fd number of the input connection.
 func GetFdFromConnection(conn net.Conn) int {
