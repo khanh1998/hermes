@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"sort"
 )
 
@@ -20,14 +21,21 @@ func Search(ints []int, value int) (index int, res int, ok bool) {
 	start, stop := 0, length-1
 	diff := stop - start
 	for diff != 0 {
+		log.Println(value, diff)
 		middle := int((start + stop) / 2)
 		middleValue := ints[middle]
 		if value < middleValue {
 			stop = middle - 1
+			if stop < start {
+				stop = start
+			}
 		} else if value > middleValue {
 			start = middle + 1
+			if start >= length {
+				start = length - 1
+			}
 		} else if value == middleValue {
-			break
+			return middle, middleValue, true
 		}
 		diff = stop - start
 	}

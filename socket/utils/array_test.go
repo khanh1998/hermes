@@ -1,14 +1,13 @@
 package utils
 
 import (
-	"log"
 	"reflect"
 	"testing"
 )
 
 type SearchTestResult struct {
-	Index int
-	Ok    bool
+	Index int  // nearest number index in case not found
+	Ok    bool // found ?
 }
 type SearchTestCase struct {
 	Search int
@@ -21,10 +20,95 @@ type SearchTestSuite struct {
 
 var testSuites []SearchTestSuite = []SearchTestSuite{
 	{
-		Ints: []int{1, 2, 3},
+		Ints: []int{},
+		Cases: []SearchTestCase{
+			{
+				Search: 1,
+				Result: SearchTestResult{
+					Index: -1,
+					Ok:    false,
+				},
+			},
+		},
+	},
+	{
+		Ints: []int{5},
+		Cases: []SearchTestCase{
+			{
+				Search: 5,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 1,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 7,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+		},
+	},
+	{
+		Ints: []int{4, 6},
 		Cases: []SearchTestCase{
 			{
 				Search: 4,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 6,
+				Result: SearchTestResult{
+					Index: 1,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 1,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 9,
+				Result: SearchTestResult{
+					Index: 1,
+					Ok:    false,
+				},
+			},
+		},
+	},
+	{
+		Ints: []int{1, 5, 9},
+		Cases: []SearchTestCase{
+			{
+				Search: 12,
+				Result: SearchTestResult{
+					Index: 2,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 4,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 7,
 				Result: SearchTestResult{
 					Index: 2,
 					Ok:    false,
@@ -38,10 +122,92 @@ var testSuites []SearchTestSuite = []SearchTestSuite{
 				},
 			},
 			{
+				Search: -5,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
 				Search: 1,
 				Result: SearchTestResult{
 					Index: 0,
 					Ok:    true,
+				},
+			},
+			{
+				Search: 5,
+				Result: SearchTestResult{
+					Index: 1,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 9,
+				Result: SearchTestResult{
+					Index: 2,
+					Ok:    true,
+				},
+			},
+		},
+	},
+	{
+		Ints: []int{0, 4, 8, 12},
+		Cases: []SearchTestCase{
+			{
+				Search: 0,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 4,
+				Result: SearchTestResult{
+					Index: 1,
+					Ok:    true,
+				},
+			},
+			{
+				Search: 12,
+				Result: SearchTestResult{
+					Index: 3,
+					Ok:    true,
+				},
+			},
+			{
+				Search: -1,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 2,
+				Result: SearchTestResult{
+					Index: 0,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 7,
+				Result: SearchTestResult{
+					Index: 2,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 9,
+				Result: SearchTestResult{
+					Index: 3,
+					Ok:    false,
+				},
+			},
+			{
+				Search: 13,
+				Result: SearchTestResult{
+					Index: 3,
+					Ok:    false,
 				},
 			},
 		},
@@ -56,9 +222,13 @@ func TestSearch(t *testing.T) {
 			if index == testCase.Result.Index && ok == testCase.Result.Ok {
 				continue
 			} else {
-				log.Fatalf(
-					"%v search value:%v res index:%v found:%v",
+				t.Logf(
+					"input: %v search value:%v res index:%v found:%v",
 					testSuite.Ints, testCase.Search, testCase.Result.Index, testCase.Result.Ok,
+				)
+				t.Fatalf(
+					"result: index:%v found:%v",
+					index, ok,
 				)
 			}
 		}
