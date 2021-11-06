@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"hermes/socket/config"
@@ -14,6 +13,7 @@ import (
 	"net"
 	"syscall"
 
+	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 )
 
@@ -25,10 +25,14 @@ type Message struct {
 	Time      int    `json:"time"`
 }
 
-var myepoll *epoll.SocketEpoll
-var mypool *pool.GoPool
+var (
+	myepoll      *epoll.SocketEpoll
+	mypool       *pool.GoPool
+	messageQueue chan *Message
+)
 
 func main() {
+	messageQueue = make(chan *Message, 10)
 	// Increase resources limitations
 	var rLimit syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
@@ -58,10 +62,12 @@ func main() {
 	authClient := httpclient.NewAuthenticationClient(
 		fmt.Sprintf("%v%v", env.AUTH_SERVICE_HOST, env.WS_AUTH_PATH),
 	)
+	go WaitAndRead(myepoll, mypool, messageQueue)
+	go WaitAndWrite(myepoll, mypool, messageQueue)
 	// Main bussiness
 	ln, err := net.Listen("tcp", env.APP_PORT)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	var authRes httpclient.AuthRes
 	u := utils.GetUpgrader(authClient, &authRes)
@@ -69,18 +75,25 @@ func main() {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Println(err)
+			conn.Close()
+			continue
 		}
 
 		_, err = u.Upgrade(conn)
 		if err != nil {
 			log.Println(err)
+			conn.Close()
+			continue
 		} else {
-			epoll.AddSocket(conn, 1)
+			myepoll.AddSocket(conn, 1)
 		}
 	}
 }
 
-func WaitAndRead(epoll *epoll.SocketEpoll, redis *redisclient.RedisClient) {
+// WaitAndRead wait for messages from epoll,
+// and then write message to message queue.
+// you can only write to messageQueue channel.
+func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<- *Message) {
 	for {
 		connections, err := epoll.Wait()
 		if err != nil {
@@ -88,58 +101,52 @@ func WaitAndRead(epoll *epoll.SocketEpoll, redis *redisclient.RedisClient) {
 		}
 		for _, conn := range connections {
 			if conn == nil {
-				break
+				continue
 			}
-			buff, _, err := wsutil.ReadClientData(conn)
-			if err != nil {
-				if err := epoll.RemoveSocket(conn); err != nil {
-					log.Printf("Failed to remove %v", err)
+			pool.Queue(func() {
+				buff, _, err := wsutil.ReadClientData(conn)
+				if err != nil {
+					if err := epoll.RemoveSocket(conn); err != nil {
+						log.Printf("Failed to remove %v", err)
+					}
 				}
-				conn.Close()
-			}
-			var message Message
-			if err := json.Unmarshal(buff, &message); err != nil {
-				log.Println(err)
-				break
-			}
-			if err := redis.Publish("1", buff); err != nil {
-				log.Println("publish", err)
-				break
-			}
-
+				var message Message
+				if err := json.Unmarshal(buff, &message); err != nil {
+					log.Println("fail to unmarshal: ", err)
+					// TODO: close connection here
+				}
+				messageQueue <- &message
+			})
 		}
 	}
 }
-func WaitAndWrite(epoll *epoll.SocketEpoll, redis *redisclient.RedisClient) {
-	subcribe := redis.Subcribe("1")
+
+// WaitAndWrite waits for message from messageQueue channel,
+// and then send these messages to corresponding clients.
+// you can only read from messageQueue channel.
+func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-chan *Message) {
 	for {
-		var ctx = context.Background()
-		mess, err := subcribe.ReceiveMessage(ctx)
-		if err != nil {
-			log.Println(err)
-			break
-		}
+		mess := <-messageQueue
 		log.Println("receive message", mess)
-		buff := []byte(mess.Payload)
-		var receivedMessage Message
-		if err := json.Unmarshal(buff, &receivedMessage); err != nil {
-			log.Println(err)
-			break
-		}
-		clan := receivedMessage.ClanId
+		clan := mess.ClanId
 		fdList := epoll.GetFDByClan(clan)
+		log.Println("file descriptor list: ", fdList)
 		for _, fd := range fdList {
 			conn := epoll.GetConnectionByFD(fd)
-			if err := wsutil.WriteClientBinary(conn, buff); err != nil {
-				if err := conn.Close(); err != nil {
-					continue
+
+			w := wsutil.NewWriter(conn, ws.StateServerSide, ws.OpText)
+			encoder := json.NewEncoder(w)
+
+			if err := encoder.Encode(mess); err != nil {
+				log.Println("encode message fail: ", err)
+				if err := epoll.RemoveSocket(conn); err != nil {
+					log.Println("remove connection fail: ", err)
 				}
-				continue
+			}
+
+			if err := w.Flush(); err != nil {
+				log.Println("flush message fail: ", err)
 			}
 		}
-		// writer.Write([]byte(mess.Payload))
-		// if err = writer.Flush(); err != nil {
-		// 	break
-		// }
 	}
 }

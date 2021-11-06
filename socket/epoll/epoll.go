@@ -49,11 +49,13 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, clan int) error {
 	defer s.lock.Unlock()
 	fds := s.clanToFds[clan]
 	fds = append(fds, socketFd)
+	s.clanToFds[clan] = fds
 	s.fdToConnection[socketFd] = conn
 	return nil
 }
 
 func (s *SocketEpoll) RemoveSocket(conn net.Conn) error {
+	defer conn.Close()
 	socketFd := GetFdFromConnection(conn)
 	epollFd := s.fd                        // file descriptor of the epoll
 	operationCode := syscall.EPOLL_CTL_DEL // operation of remove a fd out of epoll to unwatch them

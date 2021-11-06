@@ -2,6 +2,7 @@ package pool
 
 import (
 	"errors"
+	"log"
 	"time"
 )
 
@@ -44,8 +45,10 @@ func (g *GoPool) queue(task func(), timeout <-chan time.Time) error {
 	case <-timeout:
 		return errors.New("Timeout to do the task")
 	case g.tasks <- task: // task queue is not full, so the task will be done by some running go routine
+		log.Println("add to task queue")
 		return nil
 	case g.workers <- struct{}{}: // task queue is full, spawns a new go routine to do the task
+		log.Println("spawns new routine")
 		go g.do(task)
 		return nil
 	}
