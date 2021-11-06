@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"sort"
 )
 
@@ -21,7 +20,6 @@ func Search(ints []int, value int) (index int, res int, ok bool) {
 	start, stop := 0, length-1
 	diff := stop - start
 	for diff != 0 {
-		log.Println(value, diff)
 		middle := int((start + stop) / 2)
 		middleValue := ints[middle]
 		if value < middleValue {
@@ -59,10 +57,11 @@ func AddToSortedArr(ints []int, value int) []int {
 		copy(tmp[index+1:], ints[index:])
 		return tmp
 	} else {
-		new := append(ints, 0)
-		copy(new[:index+2], new[:index+1])
-		new[index+1] = value
-		return new
+		tmp := make([]int, len(ints)+1)
+		copy(tmp[0:], ints[:index+1])
+		tmp[index+1] = value
+		copy(tmp[index+2:], ints[index+1:])
+		return tmp
 	}
 }
 

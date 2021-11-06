@@ -216,7 +216,7 @@ var testSuites []SearchTestSuite = []SearchTestSuite{
 
 func TestSearch(t *testing.T) {
 	for index, testSuite := range testSuites {
-		t.Logf("Suite %v -------------------", index)
+		t.Logf("Suite %v ------------------- %v", index, testSuite.Ints)
 		for _, testCase := range testSuite.Cases {
 			index, _, ok := Search(testSuite.Ints, testCase.Search)
 			if index == testCase.Result.Index && ok == testCase.Result.Ok {
@@ -246,11 +246,74 @@ type AddToArrTestSuite struct {
 
 var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 	{
+		Ints: []int{},
+		Cases: []AddToArrTestCase{
+			{
+				Add:    1,
+				Result: []int{1},
+			},
+			{
+				Add:    2,
+				Result: []int{2},
+			},
+		},
+	},
+	{
+		Ints: []int{1},
+		Cases: []AddToArrTestCase{
+			{
+				Add:    2,
+				Result: []int{1, 2},
+			},
+			{
+				Add:    0,
+				Result: []int{0, 1},
+			},
+		},
+	},
+	{
 		Ints: []int{1, 3, 5},
 		Cases: []AddToArrTestCase{
 			{
 				Add:    4,
 				Result: []int{1, 3, 4, 5},
+			},
+			{
+				Add:    6,
+				Result: []int{1, 3, 5, 6},
+			},
+			{
+				Add:    2,
+				Result: []int{1, 2, 3, 5},
+			},
+			{
+				Add:    0,
+				Result: []int{0, 1, 3, 5},
+			},
+		},
+	},
+	{
+		Ints: []int{2, 4, 6, 8},
+		Cases: []AddToArrTestCase{
+			{
+				Add:    11,
+				Result: []int{2, 4, 6, 8, 11},
+			},
+			{
+				Add:    7,
+				Result: []int{2, 4, 6, 7, 8},
+			},
+			{
+				Add:    5,
+				Result: []int{2, 4, 5, 6, 8},
+			},
+			{
+				Add:    3,
+				Result: []int{2, 3, 4, 6, 8},
+			},
+			{
+				Add:    -1,
+				Result: []int{-1, 2, 4, 6, 8},
 			},
 		},
 	},
@@ -258,12 +321,13 @@ var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 
 func TestAddToSortedArr(t *testing.T) {
 	for index, testSuite := range addingTestSuites {
-		t.Logf("Test suite: %v --------------------", index)
+		t.Logf("Test suite: %v -------------------- %v", index, testSuite.Ints)
 		for _, testCase := range testSuite.Cases {
 			input := make([]int, len(testSuite.Ints))
 			copy(input, testSuite.Ints)
 			res := AddToSortedArr(input, testCase.Add)
 			if same := reflect.DeepEqual(res, testCase.Result); !same {
+				t.Logf("output: %v", res)
 				t.Fatalf("%v add:%v res:%v\n", testSuite.Ints, testCase.Add, testCase.Result)
 			}
 		}
