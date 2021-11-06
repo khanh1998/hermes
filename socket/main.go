@@ -106,14 +106,14 @@ func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<
 			pool.Queue(func() {
 				buff, _, err := wsutil.ReadClientData(conn)
 				if err != nil {
-					if err := epoll.RemoveSocket(conn); err != nil {
+					if err := epoll.RemoveSocket(conn, 1); err != nil {
 						log.Printf("Failed to remove %v", err)
 					}
 				}
 				var message Message
 				if err := json.Unmarshal(buff, &message); err != nil {
 					log.Println("fail to unmarshal: ", err)
-					// TODO: close connection here
+					epoll.RemoveSocket(conn, 1)
 				}
 				messageQueue <- &message
 			})
@@ -130,7 +130,7 @@ func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-ch
 		log.Println("receive message", mess)
 		clan := mess.ClanId
 		fdList := epoll.GetFDByClan(clan)
-		log.Println("file descriptor list: ", fdList)
+		log.Println("wait and write file descriptor list: ", fdList)
 		for _, fd := range fdList {
 			conn := epoll.GetConnectionByFD(fd)
 
@@ -139,7 +139,7 @@ func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-ch
 
 			if err := encoder.Encode(mess); err != nil {
 				log.Println("encode message fail: ", err)
-				if err := epoll.RemoveSocket(conn); err != nil {
+				if err := epoll.RemoveSocket(conn, 1); err != nil {
 					log.Println("remove connection fail: ", err)
 				}
 			}

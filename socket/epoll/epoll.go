@@ -1,6 +1,8 @@
 package epoll
 
 import (
+	"hermes/socket/utils"
+	"log"
 	"net"
 	"reflect"
 	"sync"
@@ -51,22 +53,25 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, clan int) error {
 	fds = append(fds, socketFd)
 	s.clanToFds[clan] = fds
 	s.fdToConnection[socketFd] = conn
+	log.Println("add new conn: ", fd, s.clanToFds[clan])
 	return nil
 }
 
-func (s *SocketEpoll) RemoveSocket(conn net.Conn) error {
-	defer conn.Close()
+func (s *SocketEpoll) RemoveSocket(conn net.Conn, clan int) error {
+	// defer conn.Close()
 	socketFd := GetFdFromConnection(conn)
 	epollFd := s.fd                        // file descriptor of the epoll
 	operationCode := syscall.EPOLL_CTL_DEL // operation of remove a fd out of epoll to unwatch them
 	fd := socketFd
+	log.Println("delete fd: ", fd)
 	if err := unix.EpollCtl(epollFd, operationCode, fd, nil); err != nil {
 		return err
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	delete(s.fdToConnection, socketFd)
-	// TODO: delete file descriptor out of clan
+	delete(s.fdToConnection, fd)
+	s.clanToFds[clan] = utils.RemoveFromSorted(s.clanToFds[clan], fd)
+	log.Println("fd: ", s.clanToFds)
 	return nil
 }
 
