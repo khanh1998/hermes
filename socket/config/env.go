@@ -9,6 +9,9 @@ type Env struct {
 	AUTH_SERVICE_HOST string `env:"AUTH_SERVICE_HOST" env-default:"http://localhost:4000"`
 	WS_AUTH_PATH      string `env:"WS_AUTH_PATH" env-default:"/authentication/ws"`
 	APP_PORT          string `env:"APP_PORT" env-default:":8080"`
+	INIT_WOKER_NUM    int    `env:"INIT_WOKER_NUM" env-default:"1"`
+	MAX_WORKER_NUM    int    `env:"MAX_WORKER_NUM" env-default:"10"`
+	TASK_QUEUE_SIZE   int    `env:"TASK_QUEUE_SIZE" env-default:"10"`
 }
 
 func GetEnv() (*Env, error) {

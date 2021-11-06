@@ -7,6 +7,7 @@ import (
 	"hermes/socket/config"
 	"hermes/socket/epoll"
 	"hermes/socket/httpclient"
+	"hermes/socket/pool"
 	"hermes/socket/redisclient"
 	"hermes/socket/utils"
 	"log"
@@ -24,8 +25,10 @@ type Message struct {
 	Time      int    `json:"time"`
 }
 
+var myepoll *epoll.SocketEpoll
+var mypool *pool.GoPool
+
 func main() {
-	epoll, err := epoll.CreateEpoll()
 	// Increase resources limitations
 	var rLimit syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
@@ -40,6 +43,12 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	// make epoll and pool
+	myepoll, err := epoll.CreateEpoll()
+	if err != nil {
+		log.Panic(err)
+	}
+	mypool := pool.NewGoPool(env.TASK_QUEUE_SIZE, env.MAX_WORKER_NUM, env.INIT_WOKER_NUM)
 
 	// Make redis client
 	redis := redisclient.NewRedisClient(env)
