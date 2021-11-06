@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"reflect"
 	"testing"
 )
@@ -269,6 +270,10 @@ var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 				Add:    0,
 				Result: []int{0, 1},
 			},
+			{
+				Add:    1,
+				Result: []int{1},
+			},
 		},
 	},
 	{
@@ -289,6 +294,18 @@ var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 			{
 				Add:    0,
 				Result: []int{0, 1, 3, 5},
+			},
+			{
+				Add:    1,
+				Result: []int{1, 3, 5},
+			},
+			{
+				Add:    3,
+				Result: []int{1, 3, 5},
+			},
+			{
+				Add:    5,
+				Result: []int{1, 3, 5},
 			},
 		},
 	},
@@ -329,6 +346,117 @@ func TestAddToSortedArr(t *testing.T) {
 			if same := reflect.DeepEqual(res, testCase.Result); !same {
 				t.Logf("output: %v", res)
 				t.Fatalf("%v add:%v res:%v\n", testSuite.Ints, testCase.Add, testCase.Result)
+			}
+		}
+	}
+}
+
+type RemoveFromArrCase struct {
+	Remove int
+	Result []int
+}
+type RemoveFromArrSuite struct {
+	Ints  []int
+	Cases []RemoveFromArrCase
+}
+
+var removeFromArrSuites []RemoveFromArrSuite = []RemoveFromArrSuite{
+	{
+		Ints: []int{},
+		Cases: []RemoveFromArrCase{
+			{
+				Remove: 4,
+				Result: []int{},
+			},
+		},
+	},
+	{
+		Ints: []int{5},
+		Cases: []RemoveFromArrCase{
+			{
+				Remove: 1,
+				Result: []int{5},
+			},
+			{
+				Remove: 8,
+				Result: []int{5},
+			},
+			{
+				Remove: 5,
+				Result: []int{},
+			},
+		},
+	},
+	{
+		Ints: []int{1, 7},
+		Cases: []RemoveFromArrCase{
+			{
+				Remove: 1,
+				Result: []int{7},
+			},
+			{
+				Remove: 7,
+				Result: []int{1},
+			},
+			{
+				Remove: 0,
+				Result: []int{1, 7},
+			},
+			{
+				Remove: 5,
+				Result: []int{1, 7},
+			},
+			{
+				Remove: 9,
+				Result: []int{1, 7},
+			},
+		},
+	},
+	{
+		Ints: []int{1, 5, 9},
+		Cases: []RemoveFromArrCase{
+			{
+				Remove: 1,
+				Result: []int{5, 9},
+			},
+			{
+				Remove: 5,
+				Result: []int{1, 9},
+			},
+			{
+				Remove: 9,
+				Result: []int{1, 5},
+			},
+			{
+				Remove: 10,
+				Result: []int{1, 5, 9},
+			},
+			{
+				Remove: 7,
+				Result: []int{1, 5, 9},
+			},
+			{
+				Remove: 3,
+				Result: []int{1, 5, 9},
+			},
+			{
+				Remove: -10,
+				Result: []int{1, 5, 9},
+			},
+		},
+	},
+}
+
+func TestRemoveFromSortedArr(t *testing.T) {
+	for index, testSuite := range removeFromArrSuites {
+		t.Logf("Test suite: %v ------------------- %v", index, testSuite.Ints)
+		for _, testCase := range testSuite.Cases {
+			input := make([]int, len(testSuite.Ints))
+			copy(input, testSuite.Ints)
+			res := RemoveFromSorted(input, testCase.Remove)
+			if same := reflect.DeepEqual(res, testCase.Result); !same {
+				log.Printf("output: %v", res)
+				log.Fatalf("ints: %v remove: %v expected: %v", testSuite.Ints, testCase.Remove, testCase.Result)
 			}
 		}
 	}
