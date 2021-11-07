@@ -3,6 +3,7 @@ import { JwtAuthGuard } from './jwt.guard';
 import { AuthenticationService } from './authentication.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { WsGuard } from './ws.guard';
+import { User } from 'src/user/user.entity';
 
 @Controller({
   path: '/authentication',
@@ -19,8 +20,8 @@ export class AuthenticationController {
   @UseGuards(WsGuard)
   @Post('/ws')
   async loginWebsocket(@Request() req: Request) {
-    console.log('login ws ok');
-    console.log(req.headers['user']);
-    return req.headers['user'];
+    const user: User = req.headers['user'];
+    console.log('login ws ok', user);
+    return user;
   }
 }

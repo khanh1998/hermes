@@ -274,6 +274,10 @@ var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 				Add:    1,
 				Result: []int{1},
 			},
+			{
+				Add:    0,
+				Result: []int{0, 1},
+			},
 		},
 	},
 	{

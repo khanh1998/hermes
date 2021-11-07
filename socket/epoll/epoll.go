@@ -1,10 +1,10 @@
 package epoll
 
 import (
+	"hermes/socket/httpclient"
 	"hermes/socket/utils"
 	"log"
 	"net"
-	"reflect"
 	"sync"
 	"syscall"
 
@@ -16,30 +16,36 @@ import (
 type SocketEpoll struct {
 	fd             int              // file descriptor of Epoll
 	fdToConnection map[int]net.Conn // mapping from socket file descriptor to socket connection
-	clanToFds      map[int][]int    // mapping from clan ID to list of file descriptor
+	fdToUser       map[int]*httpclient.User
+	clanToFds      map[int][]int // mapping from clan ID to list of file descriptor
 	lock           *sync.Mutex
 }
 
 func CreateEpoll() (*SocketEpoll, error) {
 	epollFD, err := unix.EpollCreate1(0)
+	log.Println("epoll FD: ", epollFD)
 	if err != nil {
 		return nil, err
 	}
 	return &SocketEpoll{
 		fd:             epollFD,
 		fdToConnection: make(map[int]net.Conn),
+		fdToUser:       make(map[int]*httpclient.User),
 		clanToFds:      make(map[int][]int),
 		lock:           &sync.Mutex{},
 	}, nil
 }
 
-func (s *SocketEpoll) AddSocket(conn net.Conn, clan int) error {
-	socketFd := GetFdFromConnection(conn)
+func (s *SocketEpoll) AddSocket(conn net.Conn, user *httpclient.User) error {
+	log.Println("add user: ", user)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	socketFd := utils.GetFdFromConnection(conn)
 	epollFd := s.fd                        // file descriptor of the epoll
 	operationCode := syscall.EPOLL_CTL_ADD // operation of adding a new fd to epoll to watch
 	fd := socketFd                         // the file descriptor to be added
 	event := &unix.EpollEvent{
-		Events: unix.POLLIN | unix.POLLHUP, // the file descriptor is available to read or write
+		Events: unix.EPOLLIN, // the file descriptor is available to read or write
 		Fd:     int32(fd),
 	}
 	// https://man7.org/linux/man-pages/man2/epoll_ctl.2.html
@@ -47,19 +53,23 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, clan int) error {
 	if err := unix.EpollCtl(epollFd, operationCode, fd, event); err != nil {
 		return err
 	}
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	fds := s.clanToFds[clan]
-	fds = append(fds, socketFd)
-	s.clanToFds[clan] = fds
+	for clan := range user.Clans {
+		fds := s.clanToFds[clan]
+		fds = append(fds, socketFd)
+		s.clanToFds[clan] = fds
+		log.Println("add new conn: ", fd, s.clanToFds[clan])
+	}
+	log.Println("fd: ", s.clanToFds)
 	s.fdToConnection[socketFd] = conn
-	log.Println("add new conn: ", fd, s.clanToFds[clan])
+	s.fdToUser[fd] = user
 	return nil
 }
 
-func (s *SocketEpoll) RemoveSocket(conn net.Conn, clan int) error {
-	// defer conn.Close()
-	socketFd := GetFdFromConnection(conn)
+func (s *SocketEpoll) RemoveSocket(conn net.Conn) error {
+	defer conn.Close()
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	socketFd := utils.GetFdFromConnection(conn)
 	epollFd := s.fd                        // file descriptor of the epoll
 	operationCode := syscall.EPOLL_CTL_DEL // operation of remove a fd out of epoll to unwatch them
 	fd := socketFd
@@ -67,15 +77,19 @@ func (s *SocketEpoll) RemoveSocket(conn net.Conn, clan int) error {
 	if err := unix.EpollCtl(epollFd, operationCode, fd, nil); err != nil {
 		return err
 	}
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	delete(s.fdToConnection, fd)
-	s.clanToFds[clan] = utils.RemoveFromSorted(s.clanToFds[clan], fd)
+	user := s.fdToUser[fd]
+	for clan := range user.Clans {
+		s.clanToFds[clan] = utils.RemoveFromSorted(s.clanToFds[clan], fd)
+	}
 	log.Println("fd: ", s.clanToFds)
+	delete(s.fdToConnection, fd)
+	delete(s.fdToUser, fd)
 	return nil
 }
 
 func (s *SocketEpoll) Wait() ([]net.Conn, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	eventBucket := make([]unix.EpollEvent, 100)
 	epollFd := s.fd
 	timeout := 100
@@ -83,12 +97,11 @@ func (s *SocketEpoll) Wait() ([]net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.lock.Lock()
-	defer s.lock.Unlock()
 	var readyConns []net.Conn
 	for i := 0; i < n; i++ {
 		readyFd := eventBucket[i].Fd // file descriptor that ready to read or write
 		socketConn := s.fdToConnection[int(readyFd)]
+		log.Println("1. event code: ", eventBucket[i].Events, " fd: ", readyFd)
 		readyConns = append(readyConns, socketConn)
 	}
 	return readyConns, nil
@@ -100,14 +113,4 @@ func (s *SocketEpoll) GetFDByClan(clanId int) []int {
 
 func (s *SocketEpoll) GetConnectionByFD(fd int) net.Conn {
 	return s.fdToConnection[fd]
-}
-
-// kernel maintains a file descriptor for each connection,
-// this function get fd number of the input connection.
-func GetFdFromConnection(conn net.Conn) int {
-	tcpConn := reflect.Indirect(reflect.ValueOf(conn)).FieldByName("conn")
-	fdVal := tcpConn.FieldByName("fd")
-	pfdVal := reflect.Indirect(fdVal).FieldByName("pfd")
-
-	return int(pfdVal.FieldByName("Sysfd").Int())
 }

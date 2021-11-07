@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"syscall"
+	"time"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -69,8 +70,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var authRes httpclient.AuthRes
-	u := utils.GetUpgrader(authClient, &authRes)
+	authUser := httpclient.User{}
+	u := utils.GetUpgrader(authClient, &authUser)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -85,7 +86,7 @@ func main() {
 			conn.Close()
 			continue
 		} else {
-			myepoll.AddSocket(conn, 1)
+			myepoll.AddSocket(conn, &authUser)
 		}
 	}
 }
@@ -99,23 +100,42 @@ func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<
 		if err != nil {
 			continue
 		}
+		// if len(connections) > 0 {
+		// log.Println("2. yei! new connection: ", len(connections))
+		log.Println("2. worker status: ", pool.Status())
+		// }
+		time.Sleep(3 * time.Second)
 		for _, conn := range connections {
 			if conn == nil {
+				log.Println("conn nil")
 				continue
 			}
+			connFd := utils.GetFdFromConnection(conn)
 			pool.Queue(func() {
-				buff, _, err := wsutil.ReadClientData(conn)
+				log.Println("3. conn start read: ", connFd)
+				h, r, err := wsutil.NextReader(conn, ws.StateServerSide)
+				log.Println("4. conn finish read: ", connFd)
 				if err != nil {
-					if err := epoll.RemoveSocket(conn, 1); err != nil {
+					log.Println("reader error: ", err)
+					if err := epoll.RemoveSocket(conn); err != nil {
 						log.Printf("Failed to remove %v", err)
 					}
 				}
-				var message Message
-				if err := json.Unmarshal(buff, &message); err != nil {
-					log.Println("fail to unmarshal: ", err)
-					epoll.RemoveSocket(conn, 1)
+				if h.OpCode.IsControl() {
+					err := wsutil.ControlFrameHandler(conn, ws.StateServerSide)(h, r)
+					log.Println("control frame error: ", err)
+					if err := epoll.RemoveSocket(conn); err != nil {
+						log.Printf("Failed to remove %v", err)
+					}
 				}
-				messageQueue <- &message
+
+				message := &Message{}
+				decoder := json.NewDecoder(r)
+				if err := decoder.Decode(message); err != nil {
+					log.Println("decode error: ", err)
+				}
+				log.Println("5. read: ", message)
+				messageQueue <- message
 			})
 		}
 	}
@@ -127,10 +147,10 @@ func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<
 func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-chan *Message) {
 	for {
 		mess := <-messageQueue
-		log.Println("receive message", mess)
+		log.Println("6. receive", mess)
 		clan := mess.ClanId
 		fdList := epoll.GetFDByClan(clan)
-		log.Println("wait and write file descriptor list: ", fdList)
+		log.Println("7. send to FDs: ", fdList)
 		for _, fd := range fdList {
 			conn := epoll.GetConnectionByFD(fd)
 
@@ -139,7 +159,7 @@ func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-ch
 
 			if err := encoder.Encode(mess); err != nil {
 				log.Println("encode message fail: ", err)
-				if err := epoll.RemoveSocket(conn, 1); err != nil {
+				if err := epoll.RemoveSocket(conn); err != nil {
 					log.Println("remove connection fail: ", err)
 				}
 			}

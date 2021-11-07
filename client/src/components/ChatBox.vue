@@ -114,7 +114,6 @@ export default defineComponent({
       if (this.message) {
         const message = this.makeMessage(this.message);
         this.ws.send(JSON.stringify(message));
-        this.messages.push(message);
         this.message = "";
       }
     },
@@ -141,20 +140,15 @@ export default defineComponent({
     const ws = new WebSocket(`${host}?token=${token}`);
     this.ws = ws;
     ws.onopen = (ev: Event) => {
-      const message = this.makeMessage("ping ping ping");
+      // const message = this.makeMessage("ping ping ping");
       console.log({ open: ev });
-      ws.send(JSON.stringify(message));
-      this.messages.push(message);
+      // ws.send(JSON.stringify(message));
+      // ws.send(JSON.stringify(message));
     };
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev });
       const incomming: Message = JSON.parse(ev.data);
-      if (incomming.senderId !== this?.userData?.id) {
-        this.messages.push(incomming);
-      } else {
-        // TODO: if this message is not in the array, push it in.
-        // in case user using two devices at a time.
-      }
+      this.messages.push(incomming);
     };
   },
 });

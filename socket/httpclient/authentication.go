@@ -12,11 +12,21 @@ import (
 type AuthenticationClient struct {
 	endpoint string
 }
-
-type AuthRes struct {
+type Clan struct {
+	ID      int    `json:"id"`
+	Domain  string `json:"domain"`
+	Name    string `json:"name"`
+	ChiefId int    `json:"chiefId"`
+}
+type User struct {
 	Username string `json:"username"`
 	ID       int    `json:"id"`
-	Clans    []int  `json:"clans"`
+	Clans    []struct {
+		ID      int    `json:"id"`
+		Domain  string `json:"domain"`
+		Name    string `json:"name"`
+		ChiefId int    `json:"chiefId"`
+	} `json:"clans"`
 }
 
 func NewAuthenticationClient(endpoint string) *AuthenticationClient {
@@ -25,7 +35,7 @@ func NewAuthenticationClient(endpoint string) *AuthenticationClient {
 	}
 }
 
-func (a *AuthenticationClient) AuthenticateWebsocket(token string) (*AuthRes, error) {
+func (a *AuthenticationClient) AuthenticateWebsocket(token string) (*User, error) {
 	req, err := http.NewRequest(http.MethodPost, a.endpoint, nil)
 	if err != nil {
 		log.Println(err)
@@ -35,14 +45,14 @@ func (a *AuthenticationClient) AuthenticateWebsocket(token string) (*AuthRes, er
 	res, err := client.Do(req)
 	if err != nil {
 		log.Println("got error here: ", err)
-		return &AuthRes{}, err
+		return &User{}, err
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	var authRes AuthRes
+	var authRes User
 	json.Unmarshal(body, &authRes)
 	if res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusOK {
 		return &authRes, nil
 	}
-	return &AuthRes{}, errors.New("Invalid token")
+	return &User{}, errors.New("Invalid token")
 }
