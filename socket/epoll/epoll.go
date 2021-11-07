@@ -45,7 +45,7 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, user *httpclient.User) error {
 	operationCode := syscall.EPOLL_CTL_ADD // operation of adding a new fd to epoll to watch
 	fd := socketFd                         // the file descriptor to be added
 	event := &unix.EpollEvent{
-		Events: unix.EPOLLIN, // the file descriptor is available to read or write
+		Events: unix.EPOLLIN | unix.EPOLLHUP, // the file descriptor is available to read or write
 		Fd:     int32(fd),
 	}
 	// https://man7.org/linux/man-pages/man2/epoll_ctl.2.html
@@ -53,11 +53,11 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, user *httpclient.User) error {
 	if err := unix.EpollCtl(epollFd, operationCode, fd, event); err != nil {
 		return err
 	}
-	for clan := range user.Clans {
-		fds := s.clanToFds[clan]
+	for _, clan := range user.Clans {
+		fds := s.clanToFds[clan.ID]
 		fds = append(fds, socketFd)
-		s.clanToFds[clan] = fds
-		log.Println("add new conn: ", fd, s.clanToFds[clan])
+		s.clanToFds[clan.ID] = fds
+		log.Println("add new conn: ", fd, s.clanToFds[clan.ID])
 	}
 	log.Println("fd: ", s.clanToFds)
 	s.fdToConnection[socketFd] = conn

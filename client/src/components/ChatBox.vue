@@ -140,10 +140,10 @@ export default defineComponent({
     const ws = new WebSocket(`${host}?token=${token}`);
     this.ws = ws;
     ws.onopen = (ev: Event) => {
-      // const message = this.makeMessage("ping ping ping");
+      const message = this.makeMessage("ping ping ping");
       console.log({ open: ev });
-      // ws.send(JSON.stringify(message));
-      // ws.send(JSON.stringify(message));
+      ws.send(JSON.stringify(message));
+      setTimeout(() => ws.send(JSON.stringify(message)), 5000)
     };
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev });

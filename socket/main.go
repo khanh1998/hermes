@@ -9,6 +9,7 @@ import (
 	"hermes/socket/pool"
 	"hermes/socket/redisclient"
 	"hermes/socket/utils"
+	"io"
 	"log"
 	"net"
 	"syscall"
@@ -94,7 +95,7 @@ func main() {
 // WaitAndRead wait for messages from epoll,
 // and then write message to message queue.
 // you can only write to messageQueue channel.
-func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<- *Message) {
+func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *Message) {
 	for {
 		connections, err := epoll.Wait()
 		if err != nil {
@@ -102,41 +103,45 @@ func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<
 		}
 		// if len(connections) > 0 {
 		// log.Println("2. yei! new connection: ", len(connections))
-		log.Println("2. worker status: ", pool.Status())
+		if p.Status(true) != "" {
+			log.Println("2. worker status: ", p.Status(true))
+		}
 		// }
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 		for _, conn := range connections {
 			if conn == nil {
 				log.Println("conn nil")
 				continue
 			}
 			connFd := utils.GetFdFromConnection(conn)
-			pool.Queue(func() {
-				log.Println("3. conn start read: ", connFd)
-				h, r, err := wsutil.NextReader(conn, ws.StateServerSide)
-				log.Println("4. conn finish read: ", connFd)
+			p.Queue(func() {
+				log.Println("5. conn start read: ", connFd)
+				header, err := ws.ReadHeader(conn)
 				if err != nil {
-					log.Println("reader error: ", err)
-					if err := epoll.RemoveSocket(conn); err != nil {
-						log.Printf("Failed to remove %v", err)
-					}
+					log.Println("read header error: ", err)
 				}
-				if h.OpCode.IsControl() {
-					err := wsutil.ControlFrameHandler(conn, ws.StateServerSide)(h, r)
-					log.Println("control frame error: ", err)
-					if err := epoll.RemoveSocket(conn); err != nil {
-						log.Printf("Failed to remove %v", err)
-					}
+				log.Println("6. conn finish read: ", connFd)
+
+				payload := make([]byte, header.Length)
+				_, err = io.ReadFull(conn, payload)
+				if err != nil {
+					log.Println("copy err: ", err)
+				}
+				if header.Masked {
+					ws.Cipher(payload, header.Mask, 0)
 				}
 
-				message := &Message{}
-				decoder := json.NewDecoder(r)
-				if err := decoder.Decode(message); err != nil {
-					log.Println("decode error: ", err)
+				// Reset the Masked flag, server frames must not be masked as
+				// RFC6455 says.
+				header.Masked = false
+				var message Message
+				if err := json.Unmarshal(payload, &message); err != nil {
+					log.Println("json unmarshal: ", err)
 				}
-				log.Println("5. read: ", message)
-				messageQueue <- message
-			})
+				log.Println("7. read: ", message)
+				messageQueue <- &message
+			}, connFd, pool.ReadFromSocket)
+			// time.Sleep(1 * time.Second)
 		}
 	}
 }
@@ -147,10 +152,10 @@ func WaitAndRead(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue chan<
 func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-chan *Message) {
 	for {
 		mess := <-messageQueue
-		log.Println("6. receive", mess)
+		log.Println("8. receive", mess)
 		clan := mess.ClanId
 		fdList := epoll.GetFDByClan(clan)
-		log.Println("7. send to FDs: ", fdList)
+		log.Println("9. send to FDs: ", fdList, " clan ", clan)
 		for _, fd := range fdList {
 			conn := epoll.GetConnectionByFD(fd)
 
@@ -166,6 +171,9 @@ func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-ch
 
 			if err := w.Flush(); err != nil {
 				log.Println("flush message fail: ", err)
+				if err := epoll.RemoveSocket(conn); err != nil {
+					log.Println("remove connection fail: ", err)
+				}
 			}
 		}
 	}
