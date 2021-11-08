@@ -13,7 +13,6 @@ import (
 	"log"
 	"net"
 	"syscall"
-	"time"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -101,29 +100,29 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 		if err != nil {
 			continue
 		}
-		// if len(connections) > 0 {
-		// log.Println("2. yei! new connection: ", len(connections))
-		if p.Status(true) != "" {
-			log.Println("2. worker status: ", p.Status(true))
-		}
-		// }
-		time.Sleep(1 * time.Second)
 		for _, conn := range connections {
 			if conn == nil {
 				log.Println("conn nil")
 				continue
 			}
+			// ---------------------------------------
+			// TODO: move these block code to inside queue task
+			// to improve performance when deal with alot of user,
+			// but it really dangerous to do so.
+			// The epoll keep emit event unil you finish reading from the emitted connection.
+			// Be careful here.
 			connFd := utils.GetFdFromConnection(conn)
+			log.Println("2. conn start read: ", connFd)
+			header, err := ws.ReadHeader(conn)
+			if err != nil {
+				log.Println("read header error: ", err)
+			}
+			log.Println("3. conn finish read: ", connFd)
+			payload := make([]byte, header.Length)
+			_, err = io.ReadFull(conn, payload)
+			// --------------------------------------
 			p.Queue(func() {
-				log.Println("5. conn start read: ", connFd)
-				header, err := ws.ReadHeader(conn)
-				if err != nil {
-					log.Println("read header error: ", err)
-				}
-				log.Println("6. conn finish read: ", connFd)
-
-				payload := make([]byte, header.Length)
-				_, err = io.ReadFull(conn, payload)
+				// TODO: move to here
 				if err != nil {
 					log.Println("copy err: ", err)
 				}
@@ -141,7 +140,6 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 				log.Println("7. read: ", message)
 				messageQueue <- &message
 			}, connFd, pool.ReadFromSocket)
-			// time.Sleep(1 * time.Second)
 		}
 	}
 }

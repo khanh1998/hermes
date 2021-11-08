@@ -41,7 +41,7 @@ func (g *GoPool) Status(trim bool) string {
 			return fmt.Sprintf("tasks: %v, workers: %v", len(g.tasks), len(g.workers))
 		}
 	}
-	return ""
+	return fmt.Sprintf("tasks: %v, workers: %v", len(g.tasks), len(g.workers))
 }
 
 func NewGoPool(taskQueueSize, maxWorkerQuantity, initWorkerQuantity int) *GoPool {
@@ -70,6 +70,7 @@ func NewGoPool(taskQueueSize, maxWorkerQuantity, initWorkerQuantity int) *GoPool
 
 // Queue puts the input task to pool to be executed.
 func (g *GoPool) Queue(task func(), fd int, t TaskType) error {
+	log.Println("4. ", g.Status(false))
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	if g.fd[fd] == nil {
@@ -95,11 +96,11 @@ func (g *GoPool) queue(task TaskFD, timeout <-chan time.Time) error {
 	for {
 		select {
 		case <-timeout:
-			log.Printf("3. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
+			log.Printf("5. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
 			return errors.New("Timeout to do the task")
 		case g.tasks <- task: // task queue is not full, so the task will be done by some running go routine
-			log.Printf("3. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
-			log.Println("4. add to task queue")
+			log.Printf("5. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
+			log.Println("6. add to task queue")
 			return nil
 		// case g.workers <- struct{}{}: // task queue is full, spawns a new go routine to do the task
 		// log.Printf("pool status: task: %v, worker: %v", len(g.tasks), len(g.workers))
