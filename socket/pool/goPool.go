@@ -14,7 +14,10 @@ type GoPool struct {
 	tasks chan func()
 	// when a new value is pushed to chan, a new worker is spawned up.
 	// when the channel is full, no more worker could be spawned.
-	workers chan struct{}
+	workers            chan struct{}
+	taskQueueSize      int
+	maxWorkerQuantity  int
+	initWorkerQuantity int
 }
 
 func (g *GoPool) Status(trim bool) string {
@@ -32,8 +35,11 @@ func NewGoPool(taskQueueSize, maxWorkerQuantity, initWorkerQuantity int) *GoPool
 		taskQueueSize, maxWorkerQuantity, initWorkerQuantity,
 	)
 	pool := &GoPool{
-		tasks:   make(chan func(), taskQueueSize),
-		workers: make(chan struct{}, maxWorkerQuantity),
+		tasks:              make(chan func(), taskQueueSize),
+		workers:            make(chan struct{}, maxWorkerQuantity),
+		taskQueueSize:      taskQueueSize,
+		maxWorkerQuantity:  maxWorkerQuantity,
+		initWorkerQuantity: initWorkerQuantity,
 	}
 	for i := 0; i < initWorkerQuantity; i++ {
 		pool.workers <- struct{}{} // add a dummy data to channel to occupy the worker queue
@@ -42,6 +48,15 @@ func NewGoPool(taskQueueSize, maxWorkerQuantity, initWorkerQuantity int) *GoPool
 		}) // do some nonsen tasks here :D
 	}
 	return pool
+}
+
+func (g *GoPool) IsTaskQueueFull() bool {
+	// be carefull, len of a default channel without buffer is alway zero
+	return len(g.tasks) == g.taskQueueSize
+}
+
+func (g *GoPool) IsWorkerQueueFull() bool {
+	return len(g.workers) == g.maxWorkerQuantity
 }
 
 // Queue puts the input task to pool to be executed.
@@ -61,19 +76,29 @@ func (g *GoPool) queue(task func(), timeout <-chan time.Time) error {
 	for {
 		select {
 		case <-timeout:
-			log.Printf("5. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
+			log.Println("5. ", g.Status(false))
 			return errors.New("Timeout to do the task")
-		case g.tasks <- task: // task queue is not full, so the task will be done by some running go routine
-			log.Printf("5. worker status: task: %v, worker: %v", len(g.tasks), len(g.workers))
-			log.Println("6. add to task queue")
-			return nil
-		// case g.workers <- struct{}{}: // task queue is full, spawns a new go routine to do the task
-		// log.Printf("pool status: task: %v, worker: %v", len(g.tasks), len(g.workers))
-		// 	log.Println("spawns new routine")
-		// 	go g.do(task)
-		// 	return nil
+		// case g.tasks <- task:
+		// case g.workers <- struct{}{}:
 		default:
-			log.Println("why it go here?")
+			// I have to do this,
+			// because for-select randomly pick a case to be consider,
+			// not by order in your code.
+			if !g.IsTaskQueueFull() { // task queue is not full, so the task will be done by some running go routine
+				log.Println("5. ", g.Status(false))
+				log.Println("6. add to task queue")
+				g.tasks <- task
+				return nil
+			}
+			if !g.IsWorkerQueueFull() { // task queue is full, spawns a new go routine to do the task
+				log.Println("5. ", g.Status(false))
+				log.Println("6. spawns new routine")
+				g.workers <- struct{}{}
+				go g.do(task)
+				return nil
+			}
+			log.Println("5. ", g.Status(false))
+			log.Println("6. why it go here? something went wrong?")
 			return nil
 		}
 	}

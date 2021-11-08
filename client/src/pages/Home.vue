@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-12 gap-x-2 p-2" v-show="!isLoading">
+  <div class="grid grid-cols-12 gap-x-2 p-2 h-auto" v-show="!isLoading">
     <div class="col-span-3">
       <user-info :user="userData.data" class="mb-2"/>
       <clan-list
@@ -15,7 +15,7 @@
       />
     </div>
     <chat-box
-      class="col-span-9"
+      class="col-span-9 max-h-96"
       :channel-id="selectedChannelId"
       :clan-id="selectedClanId"
     />

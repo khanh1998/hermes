@@ -1,6 +1,6 @@
 <template>
   <div class="">
-    <div class="flex flex-col border-green-500 border rounded">
+    <div class="flex flex-col border-green-500 border rounded h-full overflow-auto">
       <template
         v-for="mess in convertedMessages"
         :key="mess.time"
@@ -140,10 +140,10 @@ export default defineComponent({
     const ws = new WebSocket(`${host}?token=${token}`);
     this.ws = ws;
     ws.onopen = (ev: Event) => {
-      const message = this.makeMessage("ping ping ping");
+      const message = this.makeMessage(this.userData?.fullname + " | " + Date.now());
       console.log({ open: ev });
       ws.send(JSON.stringify(message));
-      setTimeout(() => ws.send(JSON.stringify(message)), 5000)
+      setInterval(() => ws.send(JSON.stringify(message)), 1000)
     };
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev });

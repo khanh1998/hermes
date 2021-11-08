@@ -116,16 +116,18 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 			header, err := ws.ReadHeader(conn)
 			if err != nil {
 				log.Println("read header error: ", err)
+				epoll.RemoveSocket(conn)
 			}
 			log.Println("3. conn finish read: ", connFd)
 			payload := make([]byte, header.Length)
 			_, err = io.ReadFull(conn, payload)
+			if err != nil {
+				log.Println("read payload err: ", err)
+				epoll.RemoveSocket(conn)
+			}
 			// --------------------------------------
 			p.Queue(func() {
 				// TODO: move to here
-				if err != nil {
-					log.Println("copy err: ", err)
-				}
 				if header.Masked {
 					ws.Cipher(payload, header.Mask, 0)
 				}
@@ -136,6 +138,7 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 				var message Message
 				if err := json.Unmarshal(payload, &message); err != nil {
 					log.Println("json unmarshal: ", err)
+					epoll.RemoveSocket(conn)
 				}
 				log.Println("7. read: ", message)
 				messageQueue <- &message
@@ -156,6 +159,9 @@ func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-ch
 		log.Println("9. send to FDs: ", fdList, " clan ", clan)
 		for _, fd := range fdList {
 			conn := epoll.GetConnectionByFD(fd)
+			if conn == nil {
+				continue
+			}
 
 			w := wsutil.NewWriter(conn, ws.StateServerSide, ws.OpText)
 			encoder := json.NewEncoder(w)
