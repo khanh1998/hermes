@@ -101,7 +101,8 @@ func (s *SocketEpoll) Wait() ([]net.Conn, error) {
 	for i := 0; i < n; i++ {
 		readyFd := eventBucket[i].Fd // file descriptor that ready to read or write
 		socketConn := s.fdToConnection[int(readyFd)]
-		log.Println("1. event code: ", eventBucket[i].Events, " fd: ", readyFd)
+		log.Println("0. --------- new event from epoll --------")
+		log.Println("1. event code: ", eventBucket[i].Events, "file descriptor id: ", readyFd)
 		readyConns = append(readyConns, socketConn)
 	}
 	return readyConns, nil

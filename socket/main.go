@@ -139,7 +139,7 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 				}
 				log.Println("7. read: ", message)
 				messageQueue <- &message
-			}, connFd, pool.ReadFromSocket)
+			})
 		}
 	}
 }
