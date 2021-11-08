@@ -55,7 +55,7 @@ func (s *SocketEpoll) AddSocket(conn net.Conn, user *httpclient.User) error {
 	}
 	for _, clan := range user.Clans {
 		fds := s.clanToFds[clan.ID]
-		fds = append(fds, socketFd)
+		fds = utils.AddToSortedArr(fds, socketFd)
 		s.clanToFds[clan.ID] = fds
 		log.Println("add new conn: ", fd, s.clanToFds[clan.ID])
 	}
@@ -78,8 +78,8 @@ func (s *SocketEpoll) RemoveSocket(conn net.Conn) error {
 		return err
 	}
 	user := s.fdToUser[fd]
-	for clan := range user.Clans {
-		s.clanToFds[clan] = utils.RemoveFromSorted(s.clanToFds[clan], fd)
+	for _, clan := range user.Clans {
+		s.clanToFds[clan.ID] = utils.RemoveFromSorted(s.clanToFds[clan.ID], fd)
 	}
 	log.Println("fd: ", s.clanToFds)
 	delete(s.fdToConnection, fd)

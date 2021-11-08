@@ -338,6 +338,15 @@ var addingTestSuites []AddToArrTestSuite = []AddToArrTestSuite{
 			},
 		},
 	},
+	{
+		Ints: []int{10, 11, 12},
+		Cases: []AddToArrTestCase{
+			{
+				Add:    7,
+				Result: []int{7, 10, 11, 12},
+			},
+		},
+	},
 }
 
 func TestAddToSortedArr(t *testing.T) {
