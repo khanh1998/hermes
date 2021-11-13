@@ -147,13 +147,14 @@ export default defineComponent({
       );
       console.log({ open: ev });
       ws.send(JSON.stringify(message));
-      setInterval(() => ws.send(JSON.stringify(message)), 1000);
+      // setInterval(() => ws.send(JSON.stringify(message)), 1000);
     };
     ws.onmessage = (ev: MessageEvent<any>) => {
       console.log({ message: ev });
       const incomming: Message = JSON.parse(ev.data);
       if (this.messages.length > 10) {
-        this.messages.shift();
+        this.messages.shift()
+        this.messages = [...this.messages];
       }
       this.messages.push(incomming);
     };

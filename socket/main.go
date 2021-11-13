@@ -6,6 +6,7 @@ import (
 	"hermes/socket/config"
 	"hermes/socket/epoll"
 	"hermes/socket/httpclient"
+	"hermes/socket/kafkaclient"
 	"hermes/socket/pool"
 	"hermes/socket/redisclient"
 	"hermes/socket/utils"
@@ -18,22 +19,14 @@ import (
 	"github.com/gobwas/ws/wsutil"
 )
 
-type Message struct {
-	SenderId  int    `json:"senderId"`
-	ClanId    int    `json:"clanId"`
-	ChannelId int    `json:"channelId"`
-	Message   string `json:"message"`
-	Time      int    `json:"time"`
-}
-
 var (
 	myepoll      *epoll.SocketEpoll
 	mypool       *pool.GoPool
-	messageQueue chan *Message
+	messageQueue chan *config.Message
 )
 
 func main() {
-	messageQueue = make(chan *Message, 10)
+	messageQueue = make(chan *config.Message, 10)
 	// Increase resources limitations
 	var rLimit syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
@@ -63,7 +56,16 @@ func main() {
 	authClient := httpclient.NewAuthenticationClient(
 		fmt.Sprintf("%v%v", env.AUTH_SERVICE_HOST, env.WS_AUTH_PATH),
 	)
-	go WaitAndRead(myepoll, mypool, messageQueue)
+
+	// Make Kafka client
+	kafka, err := kafkaclient.NewKafkaClient(env)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("kafka created")
+
+	go WaitAndRead(myepoll, mypool, messageQueue, kafka)
 	go WaitAndWrite(myepoll, mypool, messageQueue)
 	// Main bussiness
 	ln, err := net.Listen("tcp", env.APP_PORT)
@@ -94,7 +96,7 @@ func main() {
 // WaitAndRead wait for messages from epoll,
 // and then write message to message queue.
 // you can only write to messageQueue channel.
-func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *Message) {
+func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *config.Message, kafka *kafkaclient.KafkaClient) {
 	for {
 		connections, err := epoll.Wait()
 		if err != nil {
@@ -135,13 +137,18 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 				// Reset the Masked flag, server frames must not be masked as
 				// RFC6455 says.
 				header.Masked = false
-				var message Message
+				var message config.Message
 				if err := json.Unmarshal(payload, &message); err != nil {
 					log.Println("json unmarshal: ", err)
 					epoll.RemoveSocket(conn)
 				}
-				log.Println("7. read: ", message)
-				messageQueue <- &message
+				err = kafka.SendMessage(&message)
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Println("7. read: ", message)
+					messageQueue <- &message
+				}
 			})
 		}
 	}
@@ -150,7 +157,7 @@ func WaitAndRead(epoll *epoll.SocketEpoll, p *pool.GoPool, messageQueue chan<- *
 // WaitAndWrite waits for message from messageQueue channel,
 // and then send these messages to corresponding clients.
 // you can only read from messageQueue channel.
-func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-chan *Message) {
+func WaitAndWrite(epoll *epoll.SocketEpoll, pool *pool.GoPool, messageQueue <-chan *config.Message) {
 	for {
 		mess := <-messageQueue
 		log.Println("8. receive", mess)
