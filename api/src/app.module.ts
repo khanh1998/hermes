@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ChannelModule } from './channel/channel.module';
 import { ClanModule } from './clan/clan.module';
+import { MessageModule } from './message/message.module';
 import { UserModule } from './user/user.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { UserModule } from './user/user.module';
     ClanModule,
     UserModule,
     ChannelModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

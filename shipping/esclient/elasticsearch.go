@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hermes/shipping/config"
 	"log"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/esapi"
 	es7 "github.com/elastic/go-elasticsearch/v7"
+	"github.com/segmentio/kafka-go"
 )
 
 type ElasticSearchClient struct {
@@ -19,7 +21,7 @@ type ElasticSearchClient struct {
 func NewElasticSearchClient(env *config.Env) (*ElasticSearchClient, error) {
 	cfg := es7.Config{
 		Addresses: []string{
-			"http://localhost:9200",
+			env.ELASTIC_SEARCH_URI,
 		},
 	}
 	es, err := es7.NewClient(cfg)
@@ -27,7 +29,6 @@ func NewElasticSearchClient(env *config.Env) (*ElasticSearchClient, error) {
 		return nil, err
 	}
 	info, err := es.Info()
-	log.Println(info)
 	if err != nil {
 		return nil, err
 	}
@@ -37,15 +38,24 @@ func NewElasticSearchClient(env *config.Env) (*ElasticSearchClient, error) {
 	}, nil
 }
 
-func (e *ElasticSearchClient) SendMessage(message []byte) error {
+func (e *ElasticSearchClient) SendMessage(message kafka.Message) error {
+	var messageObj config.Message
+	json.Unmarshal(message.Value, &messageObj)
+	messageObj.Time = message.Time.Nanosecond()
+
+	key := fmt.Sprintf("%v_%v_%v", message.Topic, message.Partition, message.Offset)
+	index := fmt.Sprintf("clan_%v", messageObj.ClanId)
+	log.Println(messageObj, key, index)
 	req := esapi.IndexRequest{
-		Index:   "message",
-		Body:    strings.NewReader(string(message)),
-		Refresh: "true",
+		Index:        index,
+		Body:         strings.NewReader(string(message.Value)),
+		DocumentID:   key,
+		DocumentType: "message",
+		Refresh:      "true",
 	}
 	res, err := req.Do(context.Background(), e.client)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	defer res.Body.Close()
 	if res.IsError() {

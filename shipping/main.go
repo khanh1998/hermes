@@ -21,12 +21,16 @@ func main() {
 		log.Println(err)
 		return
 	}
+	log.Println("connect to elasticsearch")
 
 	kafka, err := kafkaclient.NewKafkaClient(env)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	log.Println("connect to kafka")
+
+	// catch interupt event to close kafka connection gently
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Kill, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -34,22 +38,30 @@ func main() {
 		if ok {
 			log.Println("close kafka connection")
 			if err := kafka.Close(); err != nil {
-				log.Println("close connection fail")
+				log.Println("close kafka connection fail")
 			}
+			log.Println("close kafka successfully")
 			os.Exit(0)
 		}
 	}()
 
 	for {
+		// fetchs message from Kafka
 		m, err := kafka.ReceiveMessage()
 		if err != nil {
 			log.Println(err)
-			break
+			continue
 		}
-		err = es.SendMessage(m)
-		if err != nil {
+		// pushs message to Elasticsearch
+		if err := es.SendMessage(m); err != nil {
 			log.Println(err)
-			break
+			continue
+		}
+		// confirms to Kafka that the message is delivered successfully,
+		// and the Kafka isn't gonna send this message again.
+		if err := kafka.CommitMessage(m); err != nil {
+			log.Println(err)
+			continue
 		}
 	}
 }
