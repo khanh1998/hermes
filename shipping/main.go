@@ -5,6 +5,9 @@ import (
 	"hermes/shipping/esclient"
 	"hermes/shipping/kafkaclient"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -24,6 +27,18 @@ func main() {
 		log.Println(err)
 		return
 	}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Kill, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		_, ok := <-c
+		if ok {
+			log.Println("close kafka connection")
+			if err := kafka.Close(); err != nil {
+				log.Println("close connection fail")
+			}
+			os.Exit(0)
+		}
+	}()
 
 	for {
 		m, err := kafka.ReceiveMessage()

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"hermes/shipping/config"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/esapi"
@@ -40,10 +39,9 @@ func NewElasticSearchClient(env *config.Env) (*ElasticSearchClient, error) {
 
 func (e *ElasticSearchClient) SendMessage(message []byte) error {
 	req := esapi.IndexRequest{
-		Index:      "message",
-		DocumentID: strconv.Itoa(1),
-		Body:       strings.NewReader(string(message)),
-		Refresh:    "true",
+		Index:   "message",
+		Body:    strings.NewReader(string(message)),
+		Refresh: "true",
 	}
 	res, err := req.Do(context.Background(), e.client)
 	if err != nil {
