@@ -10,7 +10,7 @@
 			font-medium
     "
   >
-    <p>{{ user.fullname }}</p>
+    <p>{{ user?.fullname }}</p>
   </div>
 </template>
 <script lang="ts">
