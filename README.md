@@ -1,38 +1,25 @@
 # hermes
 An instant messaging app that delivers your messages as fast as Hermes
 
-docker exec -it ksqldb ksql http://ksqldb:8088
-DROP STREAM MESSAGE;
+# Develop
 
-CREATE STREAM MESSAGE (senderId INT, clanId INT, channelId INT, message VARCHAR, time INT)
-  WITH (KAFKA_TOPIC='message', PARTITIONS=1, FORMAT='JSON');
+1. sudo docker-compose up -d
 
-INSERT INTO MESSAGE (senderId, clanId, channelId, message, time) VALUES (1, 2, 3, 'moving awayt', 1);
+Wait about 2 minutes, kafka takes time to get ready
 
+2. cd client
+npm run dev
 
-SHOW TOPICS;
-PRINT message FROM BEGINNING LIMIT 2;
+3. cd auth
+npm run start:dev
 
-docker exec elasticsearch curl -s -XDELETE "http://localhost:9200/message"
+4. cd api
+npm run start:dev
 
-CREATE SINK CONNECTOR SINK_ELASTIC_TEST_02 WITH (
-  'connector.class'         = 'io.confluent.connect.elasticsearch.ElasticsearchSinkConnector',
-  'connection.url'          = 'http://elasticsearch:9200',
-  'key.converter'           = 'org.apache.kafka.connect.storage.StringConverter',
-  'value.converter'         = 'org.apache.kafka.connect.json.JsonConverter',
-  'value.converter.schemas.enable' = 'false',
-  'type.name'               = '_doc',
-  'topics'                  = 'message',
-  'key.ignore'              = 'true',
-  'schema.ignore'           = 'true'
-);
+5. cd shipping
+go run .
 
-describe connector SINK_ELASTIC_TEST_02;
+6. cd socket
+go run .
 
-drop connector SINK_ELASTIC_TEST_02;
-
-curl -s http://localhost:9200/message/_search \
-    -H 'content-type: application/json' \
-    -d '{ "size": 42  }' | jq -c '.hits.hits[]'
-
-curl -s http://localhost:9200/message/_mapping | jq '.'
+go to localhost:3000

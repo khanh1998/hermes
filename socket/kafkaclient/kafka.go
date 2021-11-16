@@ -4,32 +4,33 @@ import (
 	"context"
 	"encoding/json"
 	"hermes/socket/config"
-	"time"
 
 	kafka "github.com/segmentio/kafka-go"
 )
 
 type KafkaClient struct {
-	conn *kafka.Conn
+	writer *kafka.Writer
 }
 
 func NewKafkaClient(env *config.Env) (*KafkaClient, error) {
-	conn, err := kafka.DialLeader(context.Background(), env.KAFKA_NETWORK_PROTOCOL, env.KAFKA_URI, env.KAFKA_TOPIC, 0)
-	if err != nil {
-		return nil, err
+	writer := kafka.Writer{
+		Addr:     kafka.TCP(env.KAFKA_URI),
+		Topic:    env.KAFKA_TOPIC,
+		Balancer: &kafka.LeastBytes{},
 	}
 	return &KafkaClient{
-		conn: conn,
+		writer: &writer,
 	}, nil
 }
 
 func (k *KafkaClient) SendMessage(message *config.Message) error {
-	k.conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
 	m, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-	_, err = k.conn.Write(m)
+	k.writer.WriteMessages(context.Background(), kafka.Message{
+		Value: m,
+	})
 	if err != nil {
 		return err
 	}
