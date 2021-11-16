@@ -1,5 +1,5 @@
 <template>
-  <div class="" v-if="!loading">
+  <div class="max-h-96" v-if="!loading">
     <div
       class="flex flex-col border-green-500 border rounded h-full overflow-auto"
     >
@@ -79,8 +79,14 @@ export default defineComponent({
     };
   },
   props: {
-    clanId: Number,
-    channelId: Number,
+    clanId: {
+      type: Number,
+      default: 1,
+    },
+    channelId: {
+      type: Number,
+      default: 1,
+    },
   },
   computed: {
     userState(): UserState {
@@ -161,6 +167,7 @@ export default defineComponent({
     },
   },
   async created() {
+    this.getLastestMessages()
     await this.getWebsocketToken();
     const token = localStorage.getItem("ws_token");
     console.log({ token });

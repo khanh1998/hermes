@@ -1,7 +1,7 @@
 <template>
   <div class="grid grid-cols-12 gap-x-2 p-2 h-auto" v-show="!isLoading">
     <div class="col-span-3">
-      <user-info :user="userData.data" class="mb-2"/>
+      <user-info :user="userData.data" class="mb-2" />
       <clan-list
         :clans="userClans"
         :selected-clan-id="selectedClanId"
@@ -14,25 +14,25 @@
         @change-channel="handleChangeChannel"
       />
     </div>
-    <chat-box
-      class="col-span-9 max-h-96"
-      :channel-id="selectedChannelId"
-      :clan-id="selectedClanId"
-    />
+    <div class="col-span-9 flex flex-col">
+      <search-box class="mb-2" @search-for="doSearch" />
+      <router-view></router-view>
+    </div>
   </div>
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
-import { mapActions, mapState } from "vuex";
+import { mapActions } from "vuex";
 import ChannelList from "../components/ChannelList.vue";
 import ChatBox from "../components/ChatBox.vue";
-import { Channel, ClanData, ClanState } from "../store/clan";
-import { UserData, UserState, ClanShort } from "../store/user";
+import { Channel, ClanState } from "../store/clan";
+import { UserState, ClanShort } from "../store/user";
 import { HOME_PAGE } from "../constants/constant";
 import ClanList from "../components/ClanList.vue";
 import UserInfo from "../atoms/UserInfo.vue";
+import SearchBox from "../atoms/SearchBox.vue";
 export default defineComponent({
-  components: { ChatBox, ChannelList, ClanList, UserInfo },
+  components: { ChatBox, ChannelList, ClanList, UserInfo, SearchBox },
   name: "Home",
   data() {
     return {
@@ -85,6 +85,9 @@ export default defineComponent({
     },
     handleChangeClan(clanId: number) {
       this.clanId = clanId;
+    },
+    doSearch(searchString: any) {
+      this.$router.push(`/search/${searchString}`)
     },
   },
   async created() {
