@@ -11,16 +11,10 @@ import (
 )
 
 type KafkaClient struct {
-	conn   *kafka.Conn
 	reader *kafka.Reader
 }
 
 func NewKafkaClient(env *config.Env) (*KafkaClient, error) {
-	conn, err := kafka.DialLeader(context.Background(), env.KAFKA_NETWORK_PROTOCOL, env.KAFKA_URI, env.KAFKA_TOPIC, 0)
-	if err != nil {
-		return nil, err
-	}
-	// make a new reader that consumes from topic-A, partition 0, at offset 42
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        []string{env.KAFKA_URI},
 		Topic:          env.KAFKA_TOPIC,
@@ -31,7 +25,6 @@ func NewKafkaClient(env *config.Env) (*KafkaClient, error) {
 		GroupID:        env.KAFKA_GROUP_CONSUMER,
 	})
 	return &KafkaClient{
-		conn:   conn,
 		reader: r,
 	}, nil
 }
@@ -47,7 +40,7 @@ func (k *KafkaClient) ReceiveMessage() (kafka.Message, error) {
 }
 
 func (k *KafkaClient) Close() error {
-	return k.conn.Close()
+	return k.reader.Close()
 }
 
 func (k *KafkaClient) CommitMessage(message kafka.Message) error {
