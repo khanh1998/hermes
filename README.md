@@ -1,6 +1,9 @@
 # hermes
 An instant messaging app that delivers your messages as fast as Hermes
 
+#Documentation
+For more details documentation, please [go here](https://quoc-khanh-bui.gitbook.io/hermes).
+
 # Architecture
 ![Architecture](https://drive.google.com/uc?id=196-RkehOrXRGh7nnK5RsHoegkbc-NSA5)
 # Authentication process
