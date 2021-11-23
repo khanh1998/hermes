@@ -7,6 +7,9 @@ import {
 } from "vue-router";
 import { RouteRecordRaw } from "vue-router";
 import decode from "jwt-decode";
+import Worker from "../my-worker?worker";
+
+const worker = new Worker();
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -21,7 +24,7 @@ const routes: Array<RouteRecordRaw> = [
         alias: "/chat",
         name: "Chatbox",
         component: () => import("../components/ChatBox.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresSocket: true },
         props: true,
       },
       {
@@ -72,8 +75,29 @@ router.beforeEach(
             path: "/login",
           });
         } else {
-          console.log("here");
-          next();
+          if (
+            to.matched.some(
+              (record: RouteRecordNormalized) => record.meta.requiresSocket
+            )
+          ) {
+            // make socket connection
+            const workerTask: WorkerTask = {
+              action: WorkerAction.CreateSocket,
+              data: {},
+            };
+            worker.postMessage(workerTask);
+            worker.addEventListener('message', (ev: MessageEvent<WorkerMessage>) => {
+              const { data } = ev;
+              if (data.action === WorkerAction.CreateSocket && data.success === true) {
+                next();
+              } else {
+                console.log("fail to create socket connection");
+                next();
+              }
+            })
+          } else {
+            next();
+          }
         }
       }
     } else {
